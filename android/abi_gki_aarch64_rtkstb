@@ -1840,6 +1840,15 @@
 # required by test-usbport.ko
   usb_disable_autosuspend
 
+# required by clk-rtd1635-scpu.ko
+  devm_clk_notifier_register
+
+# required by rtk_lsadc_button.ko
+  devm_input_allocate_device
+  iio_write_channel_ext_info
+  input_event
+  input_register_device
+
 # preserved by --additions-only
   cancel_work
   __clk_get_hw
