@@ -160,9 +160,6 @@ static int tcf_connmark_init(struct net *net, struct nlattr *nla,
 		if (goto_ch)
 			tcf_chain_put_by_act(goto_ch);
 		ret = 0;
-	} else {
-		err = ret;
-		goto out_free;
 	}
 
 	return ret;
