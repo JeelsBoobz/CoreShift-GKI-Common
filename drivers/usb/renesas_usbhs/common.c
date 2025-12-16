@@ -794,7 +794,7 @@ probe_pm_disable:
 	return ret;
 }
 
-static void usbhs_remove(struct platform_device *pdev)
+static int usbhs_remove(struct platform_device *pdev)
 {
 	struct usbhs_priv *priv = usbhs_pdev_to_priv(pdev);
 
@@ -814,6 +814,8 @@ static void usbhs_remove(struct platform_device *pdev)
 
 	usbhsc_clk_put(priv);
 	pm_runtime_disable(&pdev->dev);
+
+	return 0;
 }
 
 static __maybe_unused int usbhsc_suspend(struct device *dev)
@@ -858,7 +860,7 @@ static struct platform_driver renesas_usbhs_driver = {
 		.of_match_table = of_match_ptr(usbhs_of_match),
 	},
 	.probe		= usbhs_probe,
-	.remove_new	= usbhs_remove,
+	.remove		= usbhs_remove,
 };
 
 module_platform_driver(renesas_usbhs_driver);
