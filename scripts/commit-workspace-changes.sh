@@ -36,57 +36,45 @@ for metadata_path in \
   "$COMMON_DIR/Baseband-guard/.github" \
   "$COMMON_DIR/KernelSU/.github"
 do
-  if [ -e "$metadata_path" ]; then
-    rm -rf "$metadata_path"
-  fi
+  [ -e "$metadata_path" ] && rm -rf "$metadata_path"
 done
 
 mapfile -t nested_git_paths < <(
   find "$COMMON_DIR" \
     -path "$COMMON_DIR/.git" -prune -o \
-    -name .git -print
+    -type d -name .git -print
 )
 
-unexpected_nested_git=()
 if [ "${#nested_git_paths[@]}" -gt 0 ]; then
-  echo "Nested .git paths detected under workspace common:" >&2
+  echo "Nested git repositories detected (will be excluded from commit):" >&2
   printf '%s\n' "${nested_git_paths[@]}" >&2
-
-  for nested_git_path in "${nested_git_paths[@]}"; do
-    case "$nested_git_path" in
-      "$COMMON_DIR/KernelSU/.git")
-        echo "Keeping KernelSU/.git for KSU_GIT_VERSION during build." >&2
-        ;;
-      "$COMMON_DIR/Baseband-guard/.git")
-        echo "Keeping Baseband-guard/.git for BBG version metadata during build." >&2
-        ;;
-      "$COMMON_DIR/SUSFS/.git")
-        echo "Keeping SUSFS/.git for SUSFS source metadata during build." >&2
-        ;;
-      "$COMMON_DIR/Baseband-guard/"*"/.git"|"$COMMON_DIR/KernelSU/"*"/.git"|"$COMMON_DIR/SUSFS/"*"/.git")
-        unexpected_nested_git+=("$nested_git_path")
-        ;;
-      *)
-        unexpected_nested_git+=("$nested_git_path")
-        ;;
-    esac
-  done
 fi
 
-if [ "${#unexpected_nested_git[@]}" -gt 0 ]; then
-  echo "Error: refusing to continue with unexpected nested git metadata in workspace common." >&2
-  exit 1
-fi
+git_add_args=(
+  add -A -- .
+  ":(exclude)out/"
+  ":(exclude)dist/"
+  ":(exclude).packaging/"
+)
 
-git -C "$COMMON_DIR" add -A -- . \
-  ":(exclude)out/" \
-  ":(exclude)dist/" \
-  ":(exclude).packaging/" \
-  ":(exclude)KernelSU/" \
-  ":(exclude)Baseband-guard/" \
-  ":(exclude)SUSFS/"
+for nested_git_path in "${nested_git_paths[@]}"; do
+  repo_root="${nested_git_path%/.git}"
+
+  if [ "$repo_root" = "$COMMON_DIR" ]; then
+    continue
+  fi
+
+  rel_path="${repo_root#$COMMON_DIR/}"
+
+  git_add_args+=(":(exclude)$rel_path/")
+
+  echo "Excluding nested repository from workspace commit: $rel_path" >&2
+done
+
+git -C "$COMMON_DIR" "${git_add_args[@]}"
 
 staged_raw_diff="$(git -C "$COMMON_DIR" diff --cached --raw)"
+
 if printf '%s\n' "$staged_raw_diff" | grep -Eq '(^|[[:space:]])160000[[:space:]]+160000[[:space:]]|(^|[[:space:]])160000[[:space:]]+[0-7]{6}[[:space:]]|(^|[[:space:]])[0-7]{6}[[:space:]]+160000[[:space:]]'; then
   echo "Error: embedded git repositories/submodules are forbidden in prepared workspace commits." >&2
   printf '%s\n' "$staged_raw_diff" >&2
@@ -100,8 +88,10 @@ else
   echo "No workspace changes to commit"
 fi
 
-git -C "$COMMON_DIR" status --short -- . \
+git -C "$COMMON_DIR" status --short -- \
+  . \
   ":(exclude)out/" \
   ":(exclude)dist/" \
   ":(exclude).packaging/"
+
 git -C "$COMMON_DIR" rev-parse --short HEAD
