@@ -1,0 +1,34 @@
+{
+  "variants": {
+    "vanilla": {
+      "description": "Baseline CoreShift build without optional feature patches.",
+      "features": [],
+      "ak3_suffixes": []
+    },
+    "bbg": {
+      "description": "CoreShift build with BBG support.",
+      "features": ["bbg"],
+      "ak3_suffixes": ["BBG"]
+    },
+    "ksu": {
+      "description": "CoreShift build with KernelSU support.",
+      "features": ["ksu"],
+      "ak3_suffixes": ["KSU"]
+    },
+    "ksu-bbg": {
+      "description": "CoreShift build with KernelSU and BBG support.",
+      "features": ["ksu", "bbg"],
+      "ak3_suffixes": ["KSU", "BBG"]
+    },
+    "ksu-susfs": {
+      "description": "CoreShift build with KernelSU and SUSFS support.",
+      "features": ["ksu", "susfs"],
+      "ak3_suffixes": ["KSU", "SUSFS"]
+    },
+    "ksu-susfs-bbg": {
+      "description": "CoreShift build with KernelSU, SUSFS, and BBG support.",
+      "features": ["ksu", "susfs", "bbg"],
+      "ak3_suffixes": ["KSU", "SUSFS", "BBG"]
+    }
+  }
+}

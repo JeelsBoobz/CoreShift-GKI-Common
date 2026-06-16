@@ -1,0 +1,38 @@
+# Copy this file to the repo root as:
+#   private.fragment
+#
+# Use Kconfig fragment syntax, not a full .config.
+# CoreShift layers fragments in this fixed order:
+#   1. base ACK defconfig
+#   2. CoreShift default fragment
+#   3. user private.fragment
+#
+# User values are layered last and win on duplicate CONFIG entries.
+# Invalid or unsupported symbols may be ignored by Kconfig.
+# Enabling random options may break builds or device compatibility.
+
+# General
+# CONFIG_IKCONFIG=y
+# CONFIG_IKCONFIG_PROC=y
+
+# Containers / namespaces
+# CONFIG_NAMESPACES=y
+# CONFIG_USER_NS=y
+# CONFIG_PID_NS=y
+# CONFIG_NET_NS=y
+
+# Filesystems
+# CONFIG_TMPFS=y
+# CONFIG_TMPFS_XATTR=y
+# CONFIG_OVERLAY_FS=y
+# CONFIG_FUSE_FS=y
+
+# Networking
+# CONFIG_TUN=y
+# CONFIG_VETH=y
+# CONFIG_BRIDGE=y
+
+# Debug / tracing
+# CONFIG_KPROBES=y
+# CONFIG_FTRACE=y
+

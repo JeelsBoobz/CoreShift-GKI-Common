@@ -1,0 +1,10 @@
+{
+  "name": "android16-6.12-lts",
+  "manifest_branch": "common-android16-6.12-lts",
+  "manifest_overlay": "manifests/overlays/android16-6.12-lts.json",
+  "manifest_overlay_mode": "safe",
+  "kernel_source_branch": "android16-6.12-lts",
+  "build_config": "common/build.config.gki.aarch64",
+  "bazel_target": "//common:kernel_dist",
+  "lto": "thin"
+}

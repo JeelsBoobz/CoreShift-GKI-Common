@@ -1,0 +1,142 @@
+name: Sync kernel common LTS branches
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-kernel-common-lts
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    name: Sync ${{ matrix.ack_branch }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+
+    strategy:
+      fail-fast: false
+      matrix:
+        ack_branch:
+          - android11-5.4-lts
+          - android12-5.4-lts
+          - android12-5.10-lts
+          - android13-5.10-lts
+          - android13-5.15-lts
+          - android14-5.15-lts
+          - android14-6.1-lts
+          - android15-6.6-lts
+          - android16-6.12-lts
+
+    steps:
+      - name: Disable IPv6
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
+          sudo sysctl -w net.ipv6.conf.default.disable_ipv6=1
+          sudo sysctl -w net.ipv6.conf.lo.disable_ipv6=1
+
+      - name: Checkout mirror repo
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Check required tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          for tool in git make rsync; do
+            command -v "$tool" >/dev/null || {
+              echo "Missing required host tool: $tool" >&2
+              exit 1
+            }
+          done
+
+      - name: Clone AOSP kernel/common
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ACK_BRANCH="${{ matrix.ack_branch }}"
+          REPO_URL="https://android.googlesource.com/kernel/common"
+
+          rm -rf /tmp/kernel-common
+
+          git clone \
+            --depth=1 \
+            --branch "$ACK_BRANCH" \
+            "$REPO_URL" \
+            /tmp/kernel-common
+
+          cd /tmp/kernel-common
+
+          echo "ACK_BRANCH=$ACK_BRANCH" >> "$GITHUB_ENV"
+          echo "ACK_COMMIT=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          echo "ACK_SHORT_COMMIT=$(git rev-parse --short HEAD)" >> "$GITHUB_ENV"
+
+          VERSION="$(make kernelversion 2>/dev/null || true)"
+          echo "KERNEL_VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Prepare target branch
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          TARGET_BRANCH="${{ matrix.ack_branch }}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if git ls-remote --exit-code --heads origin "$TARGET_BRANCH" >/dev/null 2>&1; then
+            git fetch origin "$TARGET_BRANCH"
+            git checkout -B "$TARGET_BRANCH" "origin/$TARGET_BRANCH"
+          else
+            git checkout --orphan "$TARGET_BRANCH"
+            git rm -rf . >/dev/null 2>&1 || true
+          fi
+
+      - name: Replace branch contents
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          rsync -a --delete \
+            --exclude='.git' \
+            /tmp/kernel-common/ "$GITHUB_WORKSPACE/"
+
+          cat > "$GITHUB_WORKSPACE/.mirror-info" <<EOF
+          upstream=android.googlesource.com/kernel/common
+          branch=${ACK_BRANCH}
+          commit=${ACK_COMMIT}
+          kernel_version=${KERNEL_VERSION}
+          EOF
+
+          git add -A
+
+      - name: Commit and push
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          TARGET_BRANCH="${{ matrix.ack_branch }}"
+
+          if git diff --cached --quiet; then
+            echo "No changes for $TARGET_BRANCH."
+            exit 0
+          fi
+
+          if [ -n "${KERNEL_VERSION:-}" ]; then
+            MSG="Sync ${TARGET_BRANCH} to Linux ${KERNEL_VERSION}"
+          else
+            MSG="Sync ${TARGET_BRANCH}"
+          fi
+
+          git commit -m "$MSG" \
+            -m "Upstream: https://android.googlesource.com/kernel/common" \
+            -m "Branch: ${TARGET_BRANCH}" \
+            -m "Commit: ${ACK_COMMIT}"
+
+          git push origin "HEAD:${TARGET_BRANCH}" --force-with-lease

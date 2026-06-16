@@ -1,0 +1,10 @@
+{
+  "name": "android14-5.15-lts",
+  "manifest_branch": "common-android14-5.15-lts",
+  "manifest_overlay": "manifests/overlays/android14-5.15-lts.json",
+  "manifest_overlay_mode": "safe",
+  "kernel_source_branch": "android14-5.15-lts",
+  "build_config": "common/build.config.gki.aarch64",
+  "bazel_target": "//common:kernel_dist",
+  "lto": "full"
+}

@@ -1,0 +1,8 @@
+# CoreShift default fragment.
+# Keep this branch-neutral and minimal.
+
+# Filesystems.
+CONFIG_TMPFS=y
+CONFIG_TMPFS_XATTR=y
+CONFIG_OVERLAY_FS=y
+CONFIG_FUSE_FS=y

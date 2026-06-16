@@ -1,0 +1,149 @@
+name: Test manifest trim
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: "Profile to test, or all profiles."
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - android11-5.4-lts
+          - android12-5.4-lts
+          - android12-5.10-lts
+          - android13-5.10-lts
+          - android13-5.15-lts
+          - android14-5.15-lts
+          - android14-6.1-lts
+          - android15-6.6-lts
+          - android16-6.12-lts
+      extra_remove_projects:
+        description: "Comma-separated extra project names to remove for this test run only."
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  resolve-matrix:
+    runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.resolve.outputs.matrix }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Resolve manifest test matrix
+        id: resolve
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          matrix_json="$(python3 - <<'PY' "${{ inputs.profile }}"
+          import json
+          import sys
+
+          selected = sys.argv[1]
+          profiles = [
+              "android11-5.4-lts",
+              "android12-5.4-lts",
+              "android12-5.10-lts",
+              "android13-5.10-lts",
+              "android13-5.15-lts",
+              "android14-5.15-lts",
+              "android14-6.1-lts",
+              "android15-6.6-lts",
+              "android16-6.12-lts",
+          ]
+
+          include = [{"profile": profile} for profile in profiles] if selected == "all" else [{"profile": selected}]
+          print(json.dumps({"include": include}, separators=(",", ":")))
+          PY
+          )"
+
+          echo "matrix=$matrix_json" >> "$GITHUB_OUTPUT"
+
+  test-manifest-trim:
+    needs: resolve-matrix
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.resolve-matrix.outputs.matrix) }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Install build tools
+        shell: bash
+        run: ./scripts/install-build-tools.sh
+
+      - name: Prepare log metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          LOG_DIR="$GITHUB_WORKSPACE/.logs/${{ matrix.profile }}/manifest"
+          mkdir -p "$LOG_DIR"
+          {
+            echo "workflow=${{ github.workflow }}"
+            echo "run_id=${{ github.run_id }}"
+            echo "run_number=${{ github.run_number }}"
+            echo "commit_sha=${{ github.sha }}"
+            echo "ref_name=${{ github.ref_name }}"
+            echo "profile=${{ matrix.profile }}"
+            echo "variant=manifest"
+            echo "runner_os=${{ runner.os }}"
+            date -u '+date_utc=%Y-%m-%dT%H:%M:%SZ'
+          } > "$LOG_DIR/metadata.txt"
+
+      - name: Test manifest trim
+        shell: bash
+        run: |
+          set -euo pipefail
+          LOG_DIR="$GITHUB_WORKSPACE/.logs/${{ matrix.profile }}/manifest"
+          mkdir -p "$LOG_DIR"
+          export CORESHIFT_LOG_DIR="$LOG_DIR"
+
+          set +e
+          ./scripts/test-manifest-trim.sh "profiles/${{ matrix.profile }}.json" ".work/${{ matrix.profile }}" \
+            --extra-remove-projects "${{ inputs.extra_remove_projects }}" 2>&1 | tee "$LOG_DIR/test-manifest-trim.log"
+          status="${PIPESTATUS[0]}"
+          echo "$status" > "$LOG_DIR/build-exit-code.txt"
+          exit "$status"
+
+      - name: Upload manifest trim report
+        uses: actions/upload-artifact@v6
+        with:
+          name: manifest-trim-report-${{ matrix.profile }}-${{ github.run_number }}
+          path: .work/${{ matrix.profile }}/manifest-trim-report.txt
+          if-no-files-found: error
+
+      - name: Upload generated overlay
+        uses: actions/upload-artifact@v6
+        with:
+          name: manifest-overlay-${{ matrix.profile }}-${{ github.run_number }}
+          path: .work/${{ matrix.profile }}/.repo/local_manifests/coreshift-overlay.xml
+          if-no-files-found: error
+
+      - name: Package logs
+        if: always()
+        shell: bash
+        run: |
+          ./scripts/collect-build-logs.sh "${{ matrix.profile }}" "manifest" ".work/${{ matrix.profile }}" "dist/${{ matrix.profile }}"
+
+      - name: Upload log artifact
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: logs-${{ matrix.profile }}-manifest-${{ github.run_number }}
+          path: dist/${{ matrix.profile }}/logs/*.zip
+          if-no-files-found: warn

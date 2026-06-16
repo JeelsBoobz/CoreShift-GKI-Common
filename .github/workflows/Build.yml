@@ -1,0 +1,218 @@
+name: Build ACK/GKI kernel
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: "ACK/GKI LTS profile"
+        required: true
+        default: "android12-5.4-lts"
+        type: choice
+        options:
+          - android11-5.4-lts
+          - android12-5.4-lts
+          - android12-5.10-lts
+          - android13-5.10-lts
+          - android13-5.15-lts
+          - android14-5.15-lts
+          - android14-6.1-lts
+          - android15-6.6-lts
+          - android16-6.12-lts
+      variant:
+        description: "Build variant"
+        required: true
+        default: "vanilla"
+        type: choice
+        options:
+          - vanilla
+          - bbg
+          - ksu
+          - ksu-bbg
+          - ksu-susfs
+          - ksu-susfs-bbg
+      private_fragment:
+        description: "Optional Kconfig fragment content layered last. Leave empty for defaults."
+        required: false
+        default: ""
+        type: string
+      disable_defconfig_check:
+        description: "Disable defconfig normalization check for private/custom builds."
+        required: true
+        default: true
+        type: boolean
+      disable_kmi_check:
+        description: "Disable strict KMI checks for private/custom builds."
+        required: true
+        default: false
+        type: boolean
+      build_env:
+        description: "Optional build env KEY=VALUE lines. One per line. Advanced users only."
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Restore ccache
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/ccache
+          key: ccache-${{ runner.os }}-${{ inputs.profile }}-${{ hashFiles('profiles/*.json', 'scripts/**', 'configs/fragments/coreshift.fragment') }}
+          restore-keys: |
+            ccache-${{ runner.os }}-${{ inputs.profile }}-
+            ccache-${{ runner.os }}-
+
+      - name: Install build tools
+        shell: bash
+        run: ./scripts/install-build-tools.sh
+
+      - name: Setup ccache
+        shell: bash
+        run: ./scripts/setup-ccache.sh
+
+      - name: Add swap
+        shell: bash
+        run: ./scripts/add-swap.sh 16 --aggressive
+
+      - name: Ccache stats before build
+        shell: bash
+        run: |
+          ccache -s || true
+          ccache --show-config || true
+
+      - name: Write private.fragment
+        if: ${{ inputs.private_fragment != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > private.fragment <<'EOF_PRIVATE_FRAGMENT'
+          ${{ inputs.private_fragment }}
+          EOF_PRIVATE_FRAGMENT
+          echo "Wrote workflow private.fragment"
+
+      - name: Prepare log metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          LOG_DIR="$GITHUB_WORKSPACE/.logs/${{ inputs.profile }}/${{ inputs.variant }}"
+          mkdir -p "$LOG_DIR"
+          {
+            echo "workflow=${{ github.workflow }}"
+            echo "run_id=${{ github.run_id }}"
+            echo "run_number=${{ github.run_number }}"
+            echo "commit_sha=${{ github.sha }}"
+            echo "ref_name=${{ github.ref_name }}"
+            echo "profile=${{ inputs.profile }}"
+            echo "variant=${{ inputs.variant }}"
+            echo "runner_os=${{ runner.os }}"
+            date -u '+date_utc=%Y-%m-%dT%H:%M:%SZ'
+          } > "$LOG_DIR/metadata.txt"
+
+      - name: Build kernel
+        shell: bash
+        run: |
+          set -euo pipefail
+          LOG_DIR="$GITHUB_WORKSPACE/.logs/${{ inputs.profile }}/${{ inputs.variant }}"
+          mkdir -p "$LOG_DIR"
+          export CORESHIFT_LOG_DIR="$LOG_DIR"
+
+          # This workflow is the beginner-friendly template.
+          # Real build logic lives in scripts/build-kernel.sh.
+          # Advanced users can edit this workflow or run scripts/build-kernel.sh manually.
+          # The two disable checks are explicit private-build escape hatches and default to off.
+          build_env_args=()
+          defconfig_check_arg="off"
+          kmi_check_arg="off"
+
+          if [ "${{ inputs.disable_defconfig_check }}" = "true" ]; then
+            defconfig_check_arg="on"
+          fi
+
+          if [ "${{ inputs.disable_kmi_check }}" = "true" ]; then
+            kmi_check_arg="on"
+          fi
+
+          while IFS= read -r line; do
+            line="${line#"${line%%[![:space:]]*}"}"
+            line="${line%"${line##*[![:space:]]}"}"
+
+            [ -n "$line" ] || continue
+
+            case "$line" in
+              \#*) continue ;;
+            esac
+
+            if [[ "$line" == export\ * ]]; then
+              echo "::error::build_env lines must be KEY=VALUE only, without export: $line"
+              exit 1
+            fi
+
+            if [[ "$line" != *=* ]]; then
+              echo "::error::Invalid build_env line, expected KEY=VALUE: $line"
+              exit 1
+            fi
+
+            key="${line%%=*}"
+
+            if ! [[ "$key" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
+              echo "::error::Invalid build_env key: $key"
+              exit 1
+            fi
+
+            build_env_args+=(--build-env "$line")
+          done <<'EOF_BUILD_ENV'
+          ${{ inputs.build_env }}
+          EOF_BUILD_ENV
+
+          set +e
+          ./scripts/build-kernel.sh "${{ inputs.profile }}" \
+            --variant "${{ inputs.variant }}" \
+            --disable-defconfig-check "$defconfig_check_arg" \
+            --disable-kmi-check "$kmi_check_arg" \
+            "${build_env_args[@]}" 2>&1 | tee "$LOG_DIR/build-kernel.log"
+          status="${PIPESTATUS[0]}"
+          echo "$status" > "$LOG_DIR/build-exit-code.txt"
+          exit "$status"
+
+      - name: Ccache stats after build
+        if: always()
+        shell: bash
+        run: |
+          ccache -s || true
+          ccache --show-config || true
+
+      - name: List AK3 zip artifacts
+        shell: bash
+        run: find "dist/${{ inputs.profile }}" -maxdepth 1 -name '*.zip' -type f -print
+
+      - name: Upload AK3 artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: ak3-${{ inputs.profile }}-${{ github.run_number }}
+          path: dist/${{ inputs.profile }}/*.zip
+          if-no-files-found: error
+
+      - name: Package logs
+        if: always()
+        shell: bash
+        run: |
+          ./scripts/collect-build-logs.sh "${{ inputs.profile }}" "${{ inputs.variant }}" ".work/${{ inputs.profile }}" "dist/${{ inputs.profile }}"
+
+      - name: Upload log artifact
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: logs-${{ inputs.profile }}-${{ inputs.variant }}-${{ github.run_number }}
+          path: dist/${{ inputs.profile }}/logs/*.zip
+          if-no-files-found: warn

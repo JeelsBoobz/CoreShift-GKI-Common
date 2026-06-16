@@ -1,0 +1,96 @@
+name: Validate manifest workspace tooling
+
+on:
+  push:
+    paths:
+      - ".github/workflows/**"
+      - "configs/**"
+      - "manifests/**"
+      - "profiles/**"
+      - "scripts/**"
+      - "README.md"
+  pull_request:
+    paths:
+      - ".github/workflows/**"
+      - "configs/**"
+      - "manifests/**"
+      - "profiles/**"
+      - "scripts/**"
+      - "README.md"
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Validate shell scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n scripts/install-build-tools.sh
+          bash -n scripts/install-repo-tool.sh
+          bash -n scripts/setup-ccache.sh
+          bash -n scripts/setup-ccache-wrappers.sh
+          bash -n scripts/add-swap.sh
+          bash -n scripts/setup-manifest-workspace.sh
+          bash -n scripts/run-manifest-build.sh
+          bash -n scripts/build-kernel.sh
+          bash -n scripts/commit-workspace-changes.sh
+          bash -n scripts/package-ak3.sh
+          bash -n scripts/patch-54-uapi-sysroot.sh
+          bash -n scripts/prepare-private-fragment.sh
+          bash -n scripts/disable-defconfig-check.sh
+          bash -n scripts/disable-kmi-check.sh
+          bash -n scripts/collect-artifacts.sh
+
+      - name: Validate profiles
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/validate-profiles.py
+          python3 scripts/resolve-build-matrix.py
+          python3 scripts/resolve-build-matrix.py --profile android12-5.10-lts
+          python3 scripts/resolve-build-matrix.py --profile android12-5.10-lts --variant vanilla
+
+      - name: Check stale toolchains references
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import pathlib
+          import sys
+
+          root = pathlib.Path.cwd()
+          needle = "configs/" + "toolchains.json"
+          paths = [
+              root / ".github",
+              root / "scripts",
+              root / "manifests",
+              root / "profiles",
+              root / "README.md",
+          ]
+
+          matches = []
+          for path in paths:
+              if path.is_dir():
+                  for candidate in sorted(path.rglob("*")):
+                      if not candidate.is_file():
+                          continue
+                      text = candidate.read_text(encoding="utf-8")
+                      if needle in text:
+                          matches.append(candidate.relative_to(root))
+              elif path.is_file():
+                  text = path.read_text(encoding="utf-8")
+                  if needle in text:
+                      matches.append(path.relative_to(root))
+
+          if matches:
+              print("stale legacy toolchain path reference found:", file=sys.stderr)
+              for match in matches:
+                  print(match, file=sys.stderr)
+              raise SystemExit(1)
+          PY

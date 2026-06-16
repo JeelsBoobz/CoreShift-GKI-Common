@@ -1,0 +1,8 @@
+{
+  "safe": {
+    "remove_projects": ["kernel/common"]
+  },
+  "aggressive": {
+    "remove_projects": ["kernel/common"]
+  }
+}
