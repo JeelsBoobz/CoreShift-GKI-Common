@@ -13,7 +13,7 @@ concurrency:
 jobs:
   sync:
     name: Sync ${{ matrix.ack_branch }}
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 60
 
     strategy:

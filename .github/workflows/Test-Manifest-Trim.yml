@@ -30,7 +30,7 @@ permissions:
 
 jobs:
   resolve-matrix:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.resolve.outputs.matrix }}
 
