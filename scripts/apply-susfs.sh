@@ -103,7 +103,11 @@ resolve_susfs_ref() {
   local configured_ref
   configured_ref="$(resolve_configured_ref || true)"
   if [ -n "$configured_ref" ]; then
-    printf '%s\n' "$configured_ref"
+    if [[ "$configured_ref" != *-dev ]] && remote_head_exists "${configured_ref}-dev"; then
+      printf '%s\n' "${configured_ref}-dev"
+    else
+      printf '%s\n' "$configured_ref"
+    fi
     return 0
   fi
 
