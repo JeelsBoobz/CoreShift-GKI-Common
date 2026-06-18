@@ -108,9 +108,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # Fetch only this branch from the mirror so that:
-          #   - --force-with-lease has a local ref to validate against
-          #   - --update-shallow can see the existing shallow boundary
+          # Fetch mirror tip so --force-with-lease has a local ref to validate.
           # Failure is expected on first sync of a branch; ignore it.
           git fetch origin "${{ matrix.ack_branch }}" --depth=1 || true
 
@@ -121,16 +119,7 @@ jobs:
 
           ACK_BRANCH="${{ matrix.ack_branch }}"
 
-          # --update-shallow extends the existing shallow boundary rather than
-          # creating a new disconnected shallow root on each sync.
-          # --depth=200 bounds CI bandwidth; the window grows over time.
-          git fetch upstream "$ACK_BRANCH" \
-            --depth=200 \
-            --update-shallow \
-            --no-tags \
-          || git fetch upstream "$ACK_BRANCH" \
-            --depth=200 \
-            --no-tags
+          git fetch upstream "$ACK_BRANCH" --no-tags
 
           UPSTREAM_TIP=$(git rev-parse FETCH_HEAD)
           echo "ACK_BRANCH=$ACK_BRANCH"         >> "$GITHUB_ENV"
