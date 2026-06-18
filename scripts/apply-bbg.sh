@@ -139,9 +139,6 @@ if [ ! -f "$BBG_DIR/setup.sh" ]; then
   exit 1
 fi
 
-bbg_commit="$(git -C "$BBG_DIR" rev-parse HEAD)"
-echo "Selected BBG commit: $bbg_commit"
-
 (
   cd "$COMMON_DIR"
   if [ -n "$BBG_LOG_DIR" ]; then

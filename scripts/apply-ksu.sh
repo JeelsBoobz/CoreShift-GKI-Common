@@ -30,11 +30,11 @@ ensure_line_once() {
   local target_file="$2"
   local tmp_file
   tmp_file="$(mktemp)"
-  trap 'rm -f "$tmp_file"' EXIT
+  trap 'rm -f "$tmp_file"' RETURN
   grep -Fvx "$wanted_line" "$target_file" > "$tmp_file" || true
   printf '%s\n' "$wanted_line" >> "$tmp_file"
   mv "$tmp_file" "$target_file"
-  trap - EXIT
+  trap - RETURN
 }
 
 if [ ! -d "$COMMON_DIR" ]; then
@@ -60,7 +60,6 @@ if [ -d "$KSU_DIR/.git" ]; then
   git -C "$KSU_DIR" fetch --depth 1 origin "$KSU_REF" || true
 else
   git clone --depth 1 "$KSU_REPO" "$KSU_DIR"
-  git -C "$KSU_DIR" fetch --depth 1 origin "$KSU_REF" || true
 fi
 
 git -C "$KSU_DIR" checkout "$KSU_REF" || true

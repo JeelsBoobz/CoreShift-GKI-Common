@@ -72,7 +72,7 @@ def main() -> int:
 
     ordered_profiles: list[str] = []
     profile_variants: dict[str, list[str]] = {}
-    ordered_variants: list[str] = []
+    all_variants: set[str] = set()
 
     for entry in entries:
         if not isinstance(entry, dict):
@@ -88,8 +88,7 @@ def main() -> int:
             profile_variants[profile] = []
         if variant not in profile_variants[profile]:
             profile_variants[profile].append(variant)
-        if variant not in ordered_variants:
-            ordered_variants.append(variant)
+        all_variants.add(variant)
 
     ordered_profiles.sort(key=profile_sort_key)
     variant_order_by_profile = {
@@ -108,7 +107,7 @@ def main() -> int:
     print()
     print(f"**Total jobs:** {len(entries)}  ")
     print(f"**Profiles:** {len(ordered_profiles)}  ")
-    print(f"**Variants:** {len(ordered_variants)}  ")
+    print(f"**Variants:** {len(all_variants)}  ")
     print()
     print("## By profile")
     print()
