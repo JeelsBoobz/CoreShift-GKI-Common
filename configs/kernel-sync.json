@@ -1,0 +1,19 @@
+{
+  "release_branch_retention": 10,
+  "lts_branches": [
+    "android11-5.4-lts",
+    "android12-5.4-lts",
+    "android12-5.10-lts",
+    "android13-5.10-lts",
+    "android13-5.15-lts",
+    "android14-5.15-lts",
+    "android14-6.1-lts",
+    "android15-6.6-lts",
+    "android16-6.12-lts"
+  ],
+  "kernel_families": [
+    "android14-6.1",
+    "android15-6.6",
+    "android16-6.12"
+  ]
+}

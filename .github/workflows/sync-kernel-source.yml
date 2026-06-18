@@ -10,28 +10,75 @@ concurrency:
   group: sync-kernel-common-lts
   cancel-in-progress: true
 
+env:
+  UPSTREAM_URL: https://android.googlesource.com/kernel/common
+
 jobs:
+  # ── Job 1: resolve ───────────────────────────────────────────────────────
+  # Reads configs/kernel-sync.json, queries upstream and mirror for branches,
+  # and produces a dynamic matrix for the sync job plus a prune list.
+  resolve:
+    name: Resolve sync matrix
+    runs-on: ubuntu-latest
+    outputs:
+      sync_matrix:    ${{ steps.resolve.outputs.sync_matrix }}
+      prune_branches: ${{ steps.resolve.outputs.prune_branches }}
+      sync_count:     ${{ steps.resolve.outputs.sync_count }}
+      prune_count:    ${{ steps.resolve.outputs.prune_count }}
+
+    steps:
+      - name: Disable IPv6
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
+          sudo sysctl -w net.ipv6.conf.default.disable_ipv6=1
+          sudo sysctl -w net.ipv6.conf.lo.disable_ipv6=1
+
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Resolve matrix
+        id: resolve
+        shell: bash
+        run: |
+          set -euo pipefail
+          RESULT=$(UPSTREAM_URL="$UPSTREAM_URL" MIRROR_REMOTE="origin" \
+            python3 scripts/resolve-sync-matrix.py)
+          echo "sync_matrix=$(echo "$RESULT"    | jq -c '.sync_matrix')"    >> "$GITHUB_OUTPUT"
+          echo "prune_branches=$(echo "$RESULT" | jq -c '.prune_branches')" >> "$GITHUB_OUTPUT"
+          echo "sync_count=$(echo "$RESULT"     | jq -r '.sync_count')"     >> "$GITHUB_OUTPUT"
+          echo "prune_count=$(echo "$RESULT"    | jq -r '.prune_count')"    >> "$GITHUB_OUTPUT"
+
+          echo "### Resolved sync matrix" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Branches to sync:** $(echo "$RESULT" | jq -r '.sync_count')" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Branches to prune:** $(echo "$RESULT" | jq -r '.prune_count')" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "#### Sync" >> "$GITHUB_STEP_SUMMARY"
+          echo "$RESULT" | jq -r '.sync_matrix.include[].ack_branch | "- \(.)"' >> "$GITHUB_STEP_SUMMARY"
+          PRUNE_COUNT=$(echo "$RESULT" | jq -r '.prune_count')
+          if [ "$PRUNE_COUNT" != "0" ]; then
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "#### Prune" >> "$GITHUB_STEP_SUMMARY"
+            echo "$RESULT" | jq -r '.prune_branches[] | "- \(.)"' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  # ── Job 2: sync ───────────────────────────────────────────────────────────
+  # Fetches each branch from upstream and pushes the actual upstream commits
+  # to the mirror, preserving ancestry and enabling cross-branch object reuse.
   sync:
     name: Sync ${{ matrix.ack_branch }}
+    needs: resolve
+    if: needs.resolve.outputs.sync_count != '0'
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
     strategy:
       fail-fast: false
-      matrix:
-        ack_branch:
-          - android11-5.4-lts
-          - android12-5.4-lts
-          - android12-5.10-lts
-          - android13-5.10-lts
-          - android13-5.15-lts
-          - android14-5.15-lts
-          - android14-6.1-lts
-          - android15-6.6-lts
-          - android16-6.12-lts
-
-    env:
-      UPSTREAM_URL: https://android.googlesource.com/kernel/common
+      matrix: ${{ fromJSON(needs.resolve.outputs.sync_matrix) }}
 
     steps:
       - name: Disable IPv6
@@ -45,7 +92,9 @@ jobs:
       - name: Checkout mirror repo
         uses: actions/checkout@v6
         with:
-          fetch-depth: 0
+          # depth=1 is sufficient: auth is set up by the action, and we fetch
+          # only the specific branch we need in the steps below.
+          fetch-depth: 1
 
       - name: Configure git
         shell: bash
@@ -55,6 +104,16 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git remote add upstream "$UPSTREAM_URL"
 
+      - name: Fetch existing mirror branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Fetch only this branch from the mirror so that:
+          #   - --force-with-lease has a local ref to validate against
+          #   - --update-shallow can see the existing shallow boundary
+          # Failure is expected on first sync of a branch; ignore it.
+          git fetch origin "${{ matrix.ack_branch }}" --depth=1 || true
+
       - name: Fetch upstream branch
         shell: bash
         run: |
@@ -62,11 +121,9 @@ jobs:
 
           ACK_BRANCH="${{ matrix.ack_branch }}"
 
-          # --update-shallow: on subsequent syncs, extends the existing shallow
-          # boundary rather than creating a new disconnected shallow root.
-          # --depth=200: keeps CI bandwidth bounded while preserving meaningful
-          # ancestry; the window grows with each sync via --update-shallow.
-          # Fall back without --update-shallow for first-time fetches.
+          # --update-shallow extends the existing shallow boundary rather than
+          # creating a new disconnected shallow root on each sync.
+          # --depth=200 bounds CI bandwidth; the window grows over time.
           git fetch upstream "$ACK_BRANCH" \
             --depth=200 \
             --update-shallow \
@@ -76,11 +133,9 @@ jobs:
             --no-tags
 
           UPSTREAM_TIP=$(git rev-parse FETCH_HEAD)
-          echo "ACK_BRANCH=$ACK_BRANCH" >> "$GITHUB_ENV"
-          echo "UPSTREAM_TIP=$UPSTREAM_TIP" >> "$GITHUB_ENV"
-          echo "UPSTREAM_SHORT=$(git rev-parse --short FETCH_HEAD)" >> "$GITHUB_ENV"
+          echo "ACK_BRANCH=$ACK_BRANCH"         >> "$GITHUB_ENV"
+          echo "UPSTREAM_TIP=$UPSTREAM_TIP"     >> "$GITHUB_ENV"
 
-          # Read kernel version from the fetched tree without a full checkout.
           KERNEL_VERSION=$(git show FETCH_HEAD:Makefile 2>/dev/null \
             | awk '/^VERSION =/{v=$3} /^PATCHLEVEL =/{p=$3} /^SUBLEVEL =/{s=$3}
                    END{if(v) printf "%s.%s.%s", v, p, s}')
@@ -91,13 +146,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-
-          if git ls-remote --exit-code --heads origin "$ACK_BRANCH" >/dev/null 2>&1; then
-            MIRROR_TIP=$(git ls-remote origin "refs/heads/$ACK_BRANCH" | awk '{print $1}')
-            if [ "${MIRROR_TIP:-}" = "$UPSTREAM_TIP" ]; then
-              echo "already_current=true" >> "$GITHUB_OUTPUT"
-              echo "Mirror already at upstream HEAD $UPSTREAM_TIP — skipping push."
-            fi
+          MIRROR_TIP=$(git ls-remote origin "refs/heads/$ACK_BRANCH" | awk '{print $1}')
+          if [ "${MIRROR_TIP:-}" = "$UPSTREAM_TIP" ]; then
+            echo "already_current=true" >> "$GITHUB_OUTPUT"
+            echo "$ACK_BRANCH: mirror already at $UPSTREAM_TIP — skipping."
           fi
 
       - name: Push upstream commits to mirror
@@ -106,18 +158,13 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Push the actual upstream commit objects — not a synthetic snapshot.
-          # This preserves:
-          #   - the upstream commit SHA and parent chain
-          #   - cross-branch object sharing (branches that share Linux history
-          #     share pack objects in the mirror)
-          #   - delta compression between branches
-          #
-          # --force-with-lease: safe non-fast-forward push; fails if the mirror
-          # ref was updated by a concurrent process since our last fetch.
-          # This handles both:
-          #   - normal incremental updates (upstream moved forward)
-          #   - migration from synthetic/orphan history (one-time replacement)
+          # Push the actual upstream commit objects — no synthetic snapshots.
+          # Preserves upstream ancestry, commit SHAs, and cross-branch object
+          # sharing. --force-with-lease validates against the ref we fetched
+          # in "Fetch existing mirror branch", covering both:
+          #   - normal fast-forward updates
+          #   - first-time branch creation (no existing lease ref → push allowed)
+          #   - migration from old synthetic/orphan history
           git push origin "FETCH_HEAD:refs/heads/$ACK_BRANCH" \
             --force-with-lease="refs/heads/$ACK_BRANCH"
 
@@ -127,4 +174,44 @@ jobs:
           echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
           echo "| Upstream commit | \`$UPSTREAM_TIP\` |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Kernel version | \`$KERNEL_VERSION\` |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Source | [\`$ACK_BRANCH\`]($UPSTREAM_URL/+log/$ACK_BRANCH) |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Source | [\`$ACK_BRANCH\`]($UPSTREAM_URL/+log/$ACK_BRANCH) |" \
+            >> "$GITHUB_STEP_SUMMARY"
+
+  # ── Job 3: prune ──────────────────────────────────────────────────────────
+  # Deletes release branches that have aged out of the retention window.
+  # LTS branches are never touched — the script only enumerates release branches
+  # (pattern: androidXX-X.XX-YYYY-MM) that belong to a managed kernel family.
+  prune:
+    name: Prune expired release branches
+    needs: resolve
+    if: needs.resolve.outputs.prune_count != '0'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Disable IPv6
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
+          sudo sysctl -w net.ipv6.conf.default.disable_ipv6=1
+          sudo sysctl -w net.ipv6.conf.lo.disable_ipv6=1
+
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Delete expired branches
+        shell: bash
+        env:
+          PRUNE_BRANCHES: ${{ needs.resolve.outputs.prune_branches }}
+        run: |
+          set -euo pipefail
+          python3 <<'EOF'
+          import json, os, subprocess
+          branches = json.loads(os.environ["PRUNE_BRANCHES"])
+          for branch in branches:
+              print(f"Pruning: {branch}")
+              subprocess.run(["git", "push", "origin", "--delete", branch], check=True)
+          print(f"Pruned {len(branches)} branch(es).")
+          EOF
