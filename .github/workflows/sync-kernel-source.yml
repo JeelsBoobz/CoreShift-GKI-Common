@@ -92,9 +92,7 @@ jobs:
       - name: Checkout mirror repo
         uses: actions/checkout@v6
         with:
-          # depth=1 is sufficient: auth is set up by the action, and we fetch
-          # only the specific branch we need in the steps below.
-          fetch-depth: 1
+          fetch-depth: 0
 
       - name: Configure git
         shell: bash
@@ -102,18 +100,9 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git remote add upstream "$UPSTREAM_URL"
 
-      - name: Fetch existing mirror branch
-        shell: bash
-        run: |
-          set -euo pipefail
-          # Fetch mirror tip so --force-with-lease has a local ref to validate.
-          # Failure is expected on first sync of a branch; ignore it.
-          git fetch origin "${{ matrix.ack_branch }}" --depth=1 || true
-
-      - name: Fetch upstream branch
-        id: fetch
+      - name: Clone upstream branch
+        id: clone
         shell: bash
         run: |
           set -xuo pipefail
@@ -121,68 +110,105 @@ jobs:
           ACK_BRANCH="${{ matrix.ack_branch }}"
           echo "ACK_BRANCH=$ACK_BRANCH" >> "$GITHUB_ENV"
 
+          rm -rf /tmp/kernel-common
+
           set +e
-          git fetch upstream "$ACK_BRANCH" --no-tags
-          fetch_rc=$?
+          git clone \
+            --depth=1 \
+            --branch "$ACK_BRANCH" \
+            "$UPSTREAM_URL" \
+            /tmp/kernel-common
+          clone_rc=$?
           set -e
 
-          if [ "$fetch_rc" -ne 0 ]; then
-            echo "::warning::$ACK_BRANCH: upstream fetch failed (rc=$fetch_rc) — branch may not exist yet, skipping"
+          if [ "$clone_rc" -ne 0 ]; then
+            echo "::warning::$ACK_BRANCH: upstream clone failed (rc=$clone_rc) — branch may not exist yet, skipping"
             echo "skip=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          UPSTREAM_TIP=$(git rev-parse FETCH_HEAD)
-          echo "UPSTREAM_TIP=$UPSTREAM_TIP" >> "$GITHUB_ENV"
+          cd /tmp/kernel-common
+          ACK_COMMIT=$(git rev-parse HEAD)
+          ACK_SHORT=$(git rev-parse --short HEAD)
+          KERNEL_VERSION=$(make kernelversion 2>/dev/null || true)
 
-          KERNEL_VERSION=$(git show FETCH_HEAD:Makefile 2>/dev/null \
-            | awk '/^VERSION =/{v=$3} /^PATCHLEVEL =/{p=$3} /^SUBLEVEL =/{s=$3}
-                   END{if(v) printf "%s.%s.%s", v, p, s}')
-          echo "KERNEL_VERSION=${KERNEL_VERSION:-unknown}" >> "$GITHUB_ENV"
+          echo "ACK_COMMIT=$ACK_COMMIT"                      >> "$GITHUB_ENV"
+          echo "ACK_SHORT_COMMIT=$ACK_SHORT"                 >> "$GITHUB_ENV"
+          echo "KERNEL_VERSION=${KERNEL_VERSION:-unknown}"   >> "$GITHUB_ENV"
 
-      - name: Check if mirror is already current
-        id: uptodate
-        if: steps.fetch.outputs.skip != 'true'
+      - name: Prepare target branch
+        if: steps.clone.outputs.skip != 'true'
         shell: bash
         run: |
-          set -xuo pipefail
-          MIRROR_TIP=$(git ls-remote origin "refs/heads/$ACK_BRANCH" | awk '{print $1}')
-          if [ "${MIRROR_TIP:-}" = "$UPSTREAM_TIP" ]; then
-            echo "already_current=true" >> "$GITHUB_OUTPUT"
-            echo "$ACK_BRANCH: mirror already at $UPSTREAM_TIP — skipping."
+          set -euo pipefail
+          TARGET_BRANCH="$ACK_BRANCH"
+
+          if git ls-remote --exit-code --heads origin "$TARGET_BRANCH" >/dev/null 2>&1; then
+            git fetch origin "$TARGET_BRANCH"
+            git checkout -B "$TARGET_BRANCH" "origin/$TARGET_BRANCH"
+          else
+            git checkout --orphan "$TARGET_BRANCH"
+            git rm -rf . >/dev/null 2>&1 || true
           fi
 
-      - name: Push upstream commits to mirror
-        if: steps.fetch.outputs.skip != 'true' && steps.uptodate.outputs.already_current != 'true'
+      - name: Replace branch contents
+        if: steps.clone.outputs.skip != 'true'
         shell: bash
         run: |
-          set -xuo pipefail
+          set -euo pipefail
+          rsync -a --delete \
+            --exclude='.git' \
+            /tmp/kernel-common/ "$GITHUB_WORKSPACE/"
 
-          # Push the actual upstream commit objects — no synthetic snapshots.
-          # Preserves upstream ancestry, commit SHAs, and cross-branch object
-          # sharing. --force-with-lease validates against the ref we fetched
-          # in "Fetch existing mirror branch", covering both:
-          #   - normal fast-forward updates
-          #   - first-time branch creation (no existing lease ref → push allowed)
-          #   - migration from old synthetic/orphan history
+          cat > "$GITHUB_WORKSPACE/.mirror-info" <<EOF
+          upstream=$UPSTREAM_URL
+          branch=$ACK_BRANCH
+          commit=$ACK_COMMIT
+          kernel_version=$KERNEL_VERSION
+          EOF
+
+          git add -A
+
+      - name: Commit and push
+        if: steps.clone.outputs.skip != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          TARGET_BRANCH="$ACK_BRANCH"
+
+          if git diff --cached --quiet; then
+            echo "$TARGET_BRANCH: no changes, already current."
+            exit 0
+          fi
+
+          if [ -n "${KERNEL_VERSION:-}" ] && [ "$KERNEL_VERSION" != "unknown" ]; then
+            MSG="Sync ${TARGET_BRANCH} to Linux ${KERNEL_VERSION}"
+          else
+            MSG="Sync ${TARGET_BRANCH}"
+          fi
+
+          git commit -m "$MSG" \
+            -m "Upstream: $UPSTREAM_URL" \
+            -m "Branch: ${TARGET_BRANCH}" \
+            -m "Commit: ${ACK_COMMIT}"
+
           set +e
-          git push origin "FETCH_HEAD:refs/heads/$ACK_BRANCH" \
-            --force-with-lease="refs/heads/$ACK_BRANCH"
+          git push origin "HEAD:${TARGET_BRANCH}" --force-with-lease
           push_rc=$?
           set -e
 
           if [ "$push_rc" -ne 0 ]; then
-            echo "::warning::$ACK_BRANCH: push failed (rc=$push_rc) — transient error, will retry next run"
+            echo "::warning::$TARGET_BRANCH: push failed (rc=$push_rc) — will retry next run"
             exit 0
           fi
 
-          echo "### Synced: $ACK_BRANCH" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Synced: $TARGET_BRANCH" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "| Field | Value |" >> "$GITHUB_STEP_SUMMARY"
           echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Upstream commit | \`$UPSTREAM_TIP\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Upstream commit | \`$ACK_COMMIT\` |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Kernel version | \`$KERNEL_VERSION\` |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Source | [\`$ACK_BRANCH\`]($UPSTREAM_URL/+log/$ACK_BRANCH) |" \
+          echo "| Source | [\`$TARGET_BRANCH\`]($UPSTREAM_URL/+log/$TARGET_BRANCH) |" \
             >> "$GITHUB_STEP_SUMMARY"
 
   # ── Job 3: prune ──────────────────────────────────────────────────────────
