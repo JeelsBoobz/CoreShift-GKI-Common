@@ -119,7 +119,7 @@ jobs:
 
           ACK_BRANCH="${{ matrix.ack_branch }}"
 
-          git fetch upstream "$ACK_BRANCH" --no-tags
+          git fetch upstream "$ACK_BRANCH" --depth=1 --no-tags
 
           UPSTREAM_TIP=$(git rev-parse FETCH_HEAD)
           echo "ACK_BRANCH=$ACK_BRANCH"         >> "$GITHUB_ENV"
