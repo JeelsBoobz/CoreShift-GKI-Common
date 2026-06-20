@@ -2,34 +2,121 @@
 """
 Resolve the kernel sync matrix for sync-kernel-source.yml.
 
-Reads configs/kernel-sync.json, then outputs JSON to stdout:
+Reads configs/kernel-sync.json, queries upstream ACK and the mirror for
+existing branches, then outputs JSON to stdout:
 
   {
-    "sync_matrix": {"include": [{"ack_branch": "..."}]},
-    "sync_count":  N
+    "sync_matrix":    {"include": [{"ack_branch": "..."}]},
+    "prune_branches": ["..."],
+    "sync_count":     N,
+    "prune_count":    N
   }
 
 Environment variables:
+  UPSTREAM_URL   ACK remote URL (default: android.googlesource.com/kernel/common)
   MIRROR_REMOTE  mirror git remote name or URL (default: origin)
 """
 
 import json
 import os
+import re
+import subprocess
 import sys
+from collections import defaultdict
 from pathlib import Path
 
+UPSTREAM_URL = os.environ.get(
+    "UPSTREAM_URL", "https://android.googlesource.com/kernel/common"
+)
 MIRROR_REMOTE = os.environ.get("MIRROR_REMOTE", "origin")
+
+RELEASE_RE = re.compile(
+    r"refs/heads/(android(\d+)-(\d+\.\d+)-(\d{4})-(\d{2}))$"
+)
+
+
+def ls_remote(target: str) -> list[str]:
+    result = subprocess.run(
+        ["git", "ls-remote", "--heads", target],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return result.stdout.splitlines()
+
+
+def parse_release_branches(lines: list[str], family_set: set[str]) -> dict:
+    """Return {family: [(year, month, branch), ...]} for known families."""
+    by_family: dict = defaultdict(list)
+    for line in lines:
+        m = RELEASE_RE.search(line)
+        if not m:
+            continue
+        branch, android_ver, kernel_ver, year, month = m.groups()
+        family = f"android{android_ver}-{kernel_ver}"
+        if family not in family_set:
+            continue
+        by_family[family].append((year, month, branch))
+    return by_family
 
 
 def main() -> None:
     config_path = Path(__file__).parent.parent / "configs" / "kernel-sync.json"
     config = json.loads(config_path.read_text(encoding="utf-8"))
 
-    lts_branches: list = config["lts_branches"]
+    lts_branches: list    = config["lts_branches"]
+    kernel_families: list = config.get("kernel_families", [])
+    family_set            = set(kernel_families)
 
+    # ── Discover release branches from upstream ───────────────────────────
+    if kernel_families:
+        try:
+            upstream_lines = ls_remote(UPSTREAM_URL)
+        except subprocess.CalledProcessError as exc:
+            print(f"error: failed to query upstream: {exc}", file=sys.stderr)
+            sys.exit(1)
+        upstream_by_family = parse_release_branches(upstream_lines, family_set)
+    else:
+        upstream_by_family = {}
+
+    # ── Build the sync list ───────────────────────────────────────────────
+    sync_branches: list[str] = list(lts_branches)
+    keep_release: set[str]   = set()
+
+    for family in kernel_families:
+        # Sort descending by (year, month) — lexicographic order is correct
+        # for zero-padded YYYY-MM strings.
+        releases = sorted(upstream_by_family.get(family, []), reverse=True)
+        # Sync only the single latest release branch per family.
+        for _, _, branch in releases[:1]:
+            sync_branches.append(branch)
+            keep_release.add(branch)
+
+    # ── Discover existing release branches in mirror (for pruning) ────────
+    if kernel_families:
+        try:
+            mirror_lines = ls_remote(MIRROR_REMOTE)
+        except subprocess.CalledProcessError:
+            # Mirror may be empty on first run or unreachable; prune nothing.
+            mirror_lines = []
+
+        existing_mirror_release = {
+            m.group(1)
+            for line in mirror_lines
+            if (m := RELEASE_RE.search(line))
+            # Only manage families listed in kernel_families.
+            and f"android{m.group(2)}-{m.group(3)}" in family_set
+        }
+        prune_branches = sorted(existing_mirror_release - keep_release)
+    else:
+        prune_branches = []
+
+    # ── Emit JSON ─────────────────────────────────────────────────────────
     result = {
-        "sync_matrix": {"include": [{"ack_branch": b} for b in lts_branches]},
-        "sync_count":  len(lts_branches),
+        "sync_matrix":    {"include": [{"ack_branch": b} for b in sync_branches]},
+        "prune_branches": prune_branches,
+        "sync_count":     len(sync_branches),
+        "prune_count":    len(prune_branches),
     }
     print(json.dumps(result))
 

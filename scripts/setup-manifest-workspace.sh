@@ -28,7 +28,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROFILE_JSON="$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
 WORKSPACE_DIR="$2"
 MANIFEST_URL="https://android.googlesource.com/kernel/manifest"
-KERNEL_COMMON_URL="https://android.googlesource.com/kernel/common"
+KERNEL_COMMON_URL="${KERNEL_COMMON_URL:-https://android.googlesource.com/kernel/common}"
 CORESHIFT_REPO_JOBS="${CORESHIFT_REPO_JOBS:-4}"
 CORESHIFT_REPO_DEPTH="${CORESHIFT_REPO_DEPTH:-1}"
 CORESHIFT_REPO_PARTIAL_CLONE="${CORESHIFT_REPO_PARTIAL_CLONE:-1}"
@@ -65,6 +65,9 @@ for field in required_strings:
     print(f"{field.upper()}={shlex.quote(value)}")
 PY
 )"
+
+# Allow overriding the kernel source branch via env var (e.g. custom-source builds).
+KERNEL_SOURCE_BRANCH="${KERNEL_SOURCE_BRANCH_OVERRIDE:-$KERNEL_SOURCE_BRANCH}"
 
 mkdir -p "$WORKSPACE_DIR"
 WORKSPACE_DIR="$(cd "$WORKSPACE_DIR" && pwd)"

@@ -8,5 +8,13 @@
     "android14-5.15-lts",
     "android14-6.1-lts",
     "android15-6.6-lts"
+  ],
+  "kernel_families": [
+    "android12-5.10",
+    "android13-5.10",
+    "android13-5.15",
+    "android14-5.15",
+    "android14-6.1",
+    "android15-6.6"
   ]
 }

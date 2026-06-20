@@ -1,4 +1,4 @@
-name: Sync kernel common LTS branches
+name: Sync kernel common branches
 
 on:
   workflow_dispatch:
@@ -15,13 +15,16 @@ env:
 
 jobs:
   # ── Job 1: resolve ───────────────────────────────────────────────────────
-  # Reads configs/kernel-sync.json and produces a dynamic matrix for the sync job.
+  # Reads configs/kernel-sync.json, queries upstream and mirror for branches,
+  # and produces a dynamic matrix for the sync job plus a prune list.
   resolve:
     name: Resolve sync matrix
     runs-on: ubuntu-latest
     outputs:
-      sync_matrix: ${{ steps.resolve.outputs.sync_matrix }}
-      sync_count:  ${{ steps.resolve.outputs.sync_count }}
+      sync_matrix:    ${{ steps.resolve.outputs.sync_matrix }}
+      prune_branches: ${{ steps.resolve.outputs.prune_branches }}
+      sync_count:     ${{ steps.resolve.outputs.sync_count }}
+      prune_count:    ${{ steps.resolve.outputs.prune_count }}
 
     steps:
       - name: Disable IPv6
@@ -42,18 +45,29 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          RESULT=$(python3 scripts/resolve-sync-matrix.py)
-          echo "sync_matrix=$(echo "$RESULT" | jq -c '.sync_matrix')" >> "$GITHUB_OUTPUT"
-          echo "sync_count=$(echo "$RESULT"  | jq -r '.sync_count')"  >> "$GITHUB_OUTPUT"
+          RESULT=$(UPSTREAM_URL="$UPSTREAM_URL" MIRROR_REMOTE="origin" \
+            python3 scripts/resolve-sync-matrix.py)
+          echo "sync_matrix=$(echo "$RESULT"    | jq -c '.sync_matrix')"    >> "$GITHUB_OUTPUT"
+          echo "prune_branches=$(echo "$RESULT" | jq -c '.prune_branches')" >> "$GITHUB_OUTPUT"
+          echo "sync_count=$(echo "$RESULT"     | jq -r '.sync_count')"     >> "$GITHUB_OUTPUT"
+          echo "prune_count=$(echo "$RESULT"    | jq -r '.prune_count')"    >> "$GITHUB_OUTPUT"
 
           echo "### Resolved sync matrix" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "**Branches to sync:** $(echo "$RESULT" | jq -r '.sync_count')" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Branches to prune:** $(echo "$RESULT" | jq -r '.prune_count')" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "#### Sync" >> "$GITHUB_STEP_SUMMARY"
           echo "$RESULT" | jq -r '.sync_matrix.include[].ack_branch | "- \(.)"' >> "$GITHUB_STEP_SUMMARY"
+          PRUNE_COUNT=$(echo "$RESULT" | jq -r '.prune_count')
+          if [ "$PRUNE_COUNT" != "0" ]; then
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "#### Prune" >> "$GITHUB_STEP_SUMMARY"
+            echo "$RESULT" | jq -r '.prune_branches[] | "- \(.)"' >> "$GITHUB_STEP_SUMMARY"
+          fi
 
   # ── Job 2: sync ───────────────────────────────────────────────────────────
-  # Fetches each LTS branch from upstream and pushes the actual upstream commits
+  # Fetches each branch from upstream and pushes the actual upstream commits
   # to the mirror, preserving ancestry and enabling cross-branch object reuse.
   sync:
     name: Sync ${{ matrix.ack_branch }}
@@ -151,3 +165,52 @@ jobs:
           echo "| Kernel version | \`$KERNEL_VERSION\` |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Source | [\`$ACK_BRANCH\`]($UPSTREAM_URL/+log/$ACK_BRANCH) |" \
             >> "$GITHUB_STEP_SUMMARY"
+
+  # ── Job 3: prune ──────────────────────────────────────────────────────────
+  # Deletes date-release branches that have been superseded by a newer one.
+  # LTS branches are never touched — the script only enumerates date-release
+  # branches (pattern: androidXX-X.XX-YYYY-MM) that belong to a managed family.
+  prune:
+    name: Prune superseded release branches
+    needs: resolve
+    if: needs.resolve.outputs.prune_count != '0'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Disable IPv6
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
+          sudo sysctl -w net.ipv6.conf.default.disable_ipv6=1
+          sudo sysctl -w net.ipv6.conf.lo.disable_ipv6=1
+
+      - name: Checkout mirror repo
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Configure git
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Prune superseded branches
+        shell: bash
+        env:
+          PRUNE_BRANCHES: ${{ needs.resolve.outputs.prune_branches }}
+        run: |
+          set -euo pipefail
+          python3 - <<'EOF'
+          import json
+          import os
+          import subprocess
+
+          branches = json.loads(os.environ["PRUNE_BRANCHES"])
+          print(f"Pruning {len(branches)} branch(es): {', '.join(branches)}")
+          for branch in branches:
+              subprocess.run(["git", "push", "origin", "--delete", branch], check=True)
+          print(f"Pruned {len(branches)} branch(es).")
+          EOF
