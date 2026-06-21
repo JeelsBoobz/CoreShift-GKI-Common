@@ -77,7 +77,7 @@ if [ -n "$FEATURES_CSV" ]; then
     feature="$(printf '%s' "$raw_feature" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
     [ -n "$feature" ] || continue
     case "$feature" in
-      ksu|kowsu|bbg|susfs)
+      ksu|kowsu|ksu-next|bbg|susfs)
         if ! feature_requested "$feature" "${trimmed_features[@]}"; then
           trimmed_features+=("$feature")
         fi
@@ -96,10 +96,18 @@ if feature_requested "ksu" "${trimmed_features[@]}" &&
   exit 1
 fi
 
+if feature_requested "ksu-next" "${trimmed_features[@]}" && (
+   feature_requested "ksu" "${trimmed_features[@]}" ||
+   feature_requested "kowsu" "${trimmed_features[@]}"); then
+  echo "Cannot enable ksu-next together with ksu or kowsu." >&2
+  exit 1
+fi
+
 if feature_requested "susfs" "${trimmed_features[@]}" &&
    ! feature_requested "ksu" "${trimmed_features[@]}" &&
-   ! feature_requested "kowsu" "${trimmed_features[@]}"; then
-  echo "SUSFS requires KernelSU. Use ksu-susfs, ksu-susfs-bbg, kowsu-susfs, or kowsu-susfs-bbg." >&2
+   ! feature_requested "kowsu" "${trimmed_features[@]}" &&
+   ! feature_requested "ksu-next" "${trimmed_features[@]}"; then
+  echo "SUSFS requires KernelSU. Use ksu-susfs, ksu-susfs-bbg, kowsu-susfs, kowsu-susfs-bbg, ksu-next-susfs, or ksu-next-susfs-bbg." >&2
   exit 1
 fi
 
@@ -112,9 +120,18 @@ if feature_requested "kowsu" "${trimmed_features[@]}"; then
     "$SCRIPT_DIR/apply-ksu.sh" "$WORKSPACE_DIR"
 fi
 
+if feature_requested "ksu-next" "${trimmed_features[@]}"; then
+  KSU_REPO="${KSU_NEXT_REPO:-https://github.com/pershoot/KernelSU-Next.git}" \
+    "$SCRIPT_DIR/apply-ksu.sh" "$WORKSPACE_DIR"
+fi
+
 if feature_requested "susfs" "${trimmed_features[@]}"; then
   if feature_requested "kowsu" "${trimmed_features[@]}"; then
     KSU_VARIANT=kowsu "$SCRIPT_DIR/apply-susfs.sh" "$WORKSPACE_DIR" "$PROFILE_NAME"
+  elif feature_requested "ksu-next" "${trimmed_features[@]}"; then
+    KSU_VARIANT=ksu-next \
+      SUSFS_REPO="${KSU_NEXT_SUSFS_REPO:-https://gitlab.com/pershoot/susfs4ksu.git}" \
+      "$SCRIPT_DIR/apply-susfs.sh" "$WORKSPACE_DIR" "$PROFILE_NAME"
   else
     "$SCRIPT_DIR/apply-susfs.sh" "$WORKSPACE_DIR" "$PROFILE_NAME"
   fi

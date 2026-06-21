@@ -43,6 +43,10 @@ on:
           - kowsu-bbg
           - kowsu-susfs
           - kowsu-susfs-bbg
+          - ksu-next
+          - ksu-next-bbg
+          - ksu-next-susfs
+          - ksu-next-susfs-bbg
           - all
       custom_url:
         description: "Custom kernel git URL (source_type=custom only)"

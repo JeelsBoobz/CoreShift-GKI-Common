@@ -582,6 +582,10 @@ else
 fi
 
 for ksu_local_dir in \
+  "$LOCAL_KSU_PATCH_ROOT/ksu-next/$PROFILE_NAME" \
+  "$LOCAL_KSU_PATCH_ROOT/ksu-next/$ANDROID_RELEASE-$KERNEL_VERSION" \
+  "$LOCAL_KSU_PATCH_ROOT/ksu-next/$KERNEL_VERSION" \
+  "$LOCAL_KSU_PATCH_ROOT/ksu-next" \
   "$LOCAL_KSU_PATCH_ROOT/kowsu/$PROFILE_NAME" \
   "$LOCAL_KSU_PATCH_ROOT/kowsu/$ANDROID_RELEASE-$KERNEL_VERSION" \
   "$LOCAL_KSU_PATCH_ROOT/kowsu/$KERNEL_VERSION" \
@@ -590,9 +594,10 @@ for ksu_local_dir in \
   "$LOCAL_KSU_PATCH_ROOT/$ANDROID_RELEASE-$KERNEL_VERSION" \
   "$LOCAL_KSU_PATCH_ROOT/$KERNEL_VERSION" \
   ; do
-  # kowsu dirs only apply when variant matches
+  # variant-specific dirs only apply when variant matches
   case "$ksu_local_dir" in
-    *"/kowsu"*) [ "$KSU_VARIANT" = "kowsu" ] || continue ;;
+    *"/ksu-next"*) [ "$KSU_VARIANT" = "ksu-next" ] || continue ;;
+    *"/kowsu"*)    [ "$KSU_VARIANT" = "kowsu" ]    || continue ;;
   esac
   [ -d "$ksu_local_dir" ] || continue
   while IFS= read -r patch_file; do

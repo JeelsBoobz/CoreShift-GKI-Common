@@ -35,6 +35,10 @@ on:
           - kowsu-bbg
           - kowsu-susfs
           - kowsu-susfs-bbg
+          - ksu-next
+          - ksu-next-bbg
+          - ksu-next-susfs
+          - ksu-next-susfs-bbg
       output_mode:
         description: "Output mode — artifacts: GitHub Actions artifact · release: GitHub pre-release"
         required: true
