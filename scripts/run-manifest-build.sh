@@ -103,8 +103,8 @@ case "$BUILD_MODE" in
       echo "CCACHE_DIR=${CCACHE_DIR:-}"
       echo "CCACHE_WRAPPER_DIR=${CCACHE_WRAPPER_DIR:-}"
       echo "CCACHE_PATH=${CCACHE_PATH:-}"
-      command -v clang
-      readlink -f "$(command -v clang)" || true
+      command -v clang || true
+      readlink -f "$(command -v clang 2>/dev/null)" 2>/dev/null || true
       clang_version_output="$(clang --version 2>/dev/null | head -n 3 || true)"
       printf '%s\n' "$clang_version_output"
       if [ "${CORESHIFT_CCACHE_WRAPPERS_ENABLED:-0}" = "1" ] && printf '%s\n' "$clang_version_output" | grep -Fq "Ubuntu clang"; then
