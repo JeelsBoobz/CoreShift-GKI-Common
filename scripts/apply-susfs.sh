@@ -440,16 +440,15 @@ apply_patch_file() {
   local patch_file="$1"
   local target_dir="$2"
   local label="$3"
-  local fuzz="${4:-3}"
   local patch_log
 
   patch_log="$(patch_log_path "$patch_file" "$label")"
   : > "$patch_log"
 
   log "Dry-run ${label} patch: $patch_file"
-  if (cd "$target_dir" && patch --dry-run --fuzz="$fuzz" -p1 < "$patch_file") >"$patch_log" 2>&1; then
+  if (cd "$target_dir" && patch --dry-run --fuzz=3 -p1 < "$patch_file") >"$patch_log" 2>&1; then
     log "Applying ${label} patch: $patch_file"
-    if ! (cd "$target_dir" && patch --fuzz="$fuzz" -p1 < "$patch_file") >>"$patch_log" 2>&1; then
+    if ! (cd "$target_dir" && patch --fuzz=3 -p1 < "$patch_file") >>"$patch_log" 2>&1; then
       echo "Failed to apply ${label} patch: $patch_file" >&2
       sed -n '1,120p' "$patch_log" >&2
       cleanup_patch_log "$patch_log"
@@ -459,7 +458,7 @@ apply_patch_file() {
     return 0
   fi
 
-  if (cd "$target_dir" && patch --dry-run -R --fuzz="$fuzz" -p1 < "$patch_file") >"$patch_log" 2>&1; then
+  if (cd "$target_dir" && patch --dry-run -R --fuzz=3 -p1 < "$patch_file") >"$patch_log" 2>&1; then
     log "Skipping already-applied ${label} patch: $patch_file"
     cleanup_patch_log "$patch_log"
     return 0
@@ -634,7 +633,7 @@ for ksu_local_dir in \
   esac
   [ -d "$ksu_local_dir" ] || continue
   while IFS= read -r patch_file; do
-    apply_patch_file "$patch_file" "$KERNELSU_DIR" "ksu-local" 0
+    apply_patch_file "$patch_file" "$KERNELSU_DIR" "ksu-local"
     config_patch_inputs+=("$patch_file")
   done < <(find "$ksu_local_dir" -maxdepth 1 -name '*.patch' | sort)
   break
