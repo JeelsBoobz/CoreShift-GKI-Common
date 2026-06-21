@@ -16,6 +16,7 @@ AK3_SUFFIX_RE = re.compile(r"^[A-Z0-9]+(?:-[A-Z0-9]+)*$")
 FEATURE_SUFFIXES = {
     "ksu": "KSU",
     "kowsu": "KOWSU",
+    "ksu-next": "KSUNEXT",
     "susfs": "SUSFS",
     "bbg": "BBG",
 }
@@ -94,10 +95,11 @@ def load_variants(path: Path) -> dict[str, dict[str, object]]:
                 f"{path}: variant {variant_name!r} features must follow display order "
                 f"{', '.join(FEATURE_DISPLAY_ORDER)}"
             )
-        if "ksu" in seen_features and "kowsu" in seen_features:
-            fail(f"{path}: variant {variant_name!r} cannot enable both 'ksu' and 'kowsu'")
-        if "susfs" in seen_features and not ({"ksu", "kowsu"} & seen_features):
-            fail(f"{path}: variant {variant_name!r} cannot enable 'susfs' without 'ksu' or 'kowsu'")
+        ksu_variants = {"ksu", "kowsu", "ksu-next"} & seen_features
+        if len(ksu_variants) > 1:
+            fail(f"{path}: variant {variant_name!r} cannot enable more than one of 'ksu', 'kowsu', 'ksu-next'")
+        if "susfs" in seen_features and not ksu_variants:
+            fail(f"{path}: variant {variant_name!r} cannot enable 'susfs' without 'ksu', 'kowsu', or 'ksu-next'")
 
         ak3_suffixes = definition.get("ak3_suffixes")
         if not isinstance(ak3_suffixes, list):

@@ -2,11 +2,11 @@
   "profiles": {
     "android11-5.4-lts": ["vanilla", "bbg"],
     "android12-5.4-lts": ["vanilla", "bbg"],
-    "android12-5.10-lts": ["vanilla", "bbg", "ksu", "ksu-bbg", "ksu-susfs", "ksu-susfs-bbg", "kowsu", "kowsu-bbg", "kowsu-susfs", "kowsu-susfs-bbg"],
-    "android13-5.10-lts": ["vanilla", "bbg", "ksu", "ksu-bbg", "ksu-susfs", "ksu-susfs-bbg", "kowsu", "kowsu-bbg", "kowsu-susfs", "kowsu-susfs-bbg"],
-    "android13-5.15-lts": ["vanilla", "bbg", "ksu", "ksu-bbg", "ksu-susfs", "ksu-susfs-bbg", "kowsu", "kowsu-bbg", "kowsu-susfs", "kowsu-susfs-bbg"],
-    "android14-5.15-lts": ["vanilla", "bbg", "ksu", "ksu-bbg", "ksu-susfs", "ksu-susfs-bbg", "kowsu", "kowsu-bbg", "kowsu-susfs", "kowsu-susfs-bbg"],
-    "android14-6.1-lts": ["vanilla", "bbg", "ksu", "ksu-bbg", "ksu-susfs", "ksu-susfs-bbg", "kowsu", "kowsu-bbg", "kowsu-susfs", "kowsu-susfs-bbg"],
-    "android15-6.6-lts": ["vanilla", "bbg", "ksu", "ksu-bbg", "ksu-susfs", "ksu-susfs-bbg", "kowsu", "kowsu-bbg", "kowsu-susfs", "kowsu-susfs-bbg"]
+    "android12-5.10-lts": ["vanilla", "bbg", "ksu", "ksu-bbg", "ksu-susfs", "ksu-susfs-bbg", "kowsu", "kowsu-bbg", "kowsu-susfs", "kowsu-susfs-bbg", "ksu-next", "ksu-next-bbg", "ksu-next-susfs", "ksu-next-susfs-bbg"],
+    "android13-5.10-lts": ["vanilla", "bbg", "ksu", "ksu-bbg", "ksu-susfs", "ksu-susfs-bbg", "kowsu", "kowsu-bbg", "kowsu-susfs", "kowsu-susfs-bbg", "ksu-next", "ksu-next-bbg", "ksu-next-susfs", "ksu-next-susfs-bbg"],
+    "android13-5.15-lts": ["vanilla", "bbg", "ksu", "ksu-bbg", "ksu-susfs", "ksu-susfs-bbg", "kowsu", "kowsu-bbg", "kowsu-susfs", "kowsu-susfs-bbg", "ksu-next", "ksu-next-bbg", "ksu-next-susfs", "ksu-next-susfs-bbg"],
+    "android14-5.15-lts": ["vanilla", "bbg", "ksu", "ksu-bbg", "ksu-susfs", "ksu-susfs-bbg", "kowsu", "kowsu-bbg", "kowsu-susfs", "kowsu-susfs-bbg", "ksu-next", "ksu-next-bbg", "ksu-next-susfs", "ksu-next-susfs-bbg"],
+    "android14-6.1-lts": ["vanilla", "bbg", "ksu", "ksu-bbg", "ksu-susfs", "ksu-susfs-bbg", "kowsu", "kowsu-bbg", "kowsu-susfs", "kowsu-susfs-bbg", "ksu-next", "ksu-next-bbg", "ksu-next-susfs", "ksu-next-susfs-bbg"],
+    "android15-6.6-lts": ["vanilla", "bbg", "ksu", "ksu-bbg", "ksu-susfs", "ksu-susfs-bbg", "kowsu", "kowsu-bbg", "kowsu-susfs", "kowsu-susfs-bbg", "ksu-next", "ksu-next-bbg", "ksu-next-susfs", "ksu-next-susfs-bbg"]
   }
 }
