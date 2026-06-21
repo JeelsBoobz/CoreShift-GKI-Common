@@ -12,13 +12,13 @@ BBG writes variant-owned config into `common/features.fragment` and ensures `CON
 
 If you hand-edit fragment inputs around BBG, do not remove that token from the effective LSM list.
 
-## KSU on 5.4
+## KSU / KOWSU / KSU-Next on 5.4
 
-5.4 does not enable KSU by default because current KernelSU `main` includes `linux/pgtable.h`, which is missing on the tested 5.4 ACK common trees.
+5.4 does not enable any KernelSU variant by default because current KernelSU `main` includes `linux/pgtable.h`, which is missing on the tested 5.4 ACK common trees. This applies equally to `ksu`, `kowsu`, and `ksu-next`.
 
 ## SUSFS
 
-SUSFS requires KernelSU. Use `ksu-susfs` or `ksu-susfs-bbg`; a raw `susfs` feature without `ksu` is rejected.
+SUSFS requires a KernelSU variant. Use `ksu-susfs`, `kowsu-susfs`, or `ksu-next-susfs` (with optional `-bbg` suffix). A raw `susfs` feature without a KernelSU variant is rejected.
 
 If SUSFS patching fails, check for patch rejects, a wrong branch/ref, or a missing `CONFIG_KSU_SUSFS` symbol after patching. Pin a known-good Simonpunk ref with `SUSFS_REF` when automatic branch resolution picks no compatible branch.
 
@@ -26,7 +26,19 @@ CoreShift scans the selected Simonpunk patch files and resulting Kconfig files, 
 
 If expected SUSFS symbols are missing, verify the selected SUSFS branch/ref and patch set. Use `SUSFS_REF` to pin a known-good Simonpunk branch/ref.
 
-If `ksu-susfs-bbg` fails, test `ksu-susfs` first so SUSFS and BBG failures are isolated.
+If a `-susfs-bbg` variant fails, test the `-susfs` variant first so SUSFS and BBG failures are isolated.
+
+## KOWSU
+
+KOWSU uses KOWX712/KernelSU whose default branch is `master`, not `main`. CoreShift handles this automatically — do not set `KSU_REF=main` for KOWSU builds.
+
+KOWSU SUSFS integration applies a local fixup patch (`patches/ksu/kowsu/`) after the upstream SUSFS patch. If the KOWSU SUSFS patch fails, the upstream SUSFS patch for the selected kernel version may have changed. Check `patches/susfs/*.log` and `*.rej` files in the build log artifact.
+
+## KernelSU-Next SUSFS
+
+KernelSU-Next SUSFS variants (`ksu-next-susfs`, `ksu-next-susfs-bbg`) clone the `dev-susfs` branch of pershoot/KernelSU-Next instead of the default branch. The upstream SUSFS kernel patch is skipped because `dev-susfs` pre-integrates SUSFS. Only the local kernel fixup patches and SUSFS config symbol scan still run.
+
+To override the branch: `--build-env KSU_NEXT_SUSFS_REF=<branch>`.
 
 ## Build log artifacts
 

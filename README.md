@@ -85,6 +85,10 @@ cp configs/fragments/private.fragment.example private.fragment
 | `android14-6.1` | `full` | `vanilla`, `bbg`, `ksu`, `ksu-bbg`, `ksu-susfs`, `ksu-susfs-bbg`, `kowsu`, `kowsu-bbg`, `kowsu-susfs`, `kowsu-susfs-bbg`, `ksu-next`, `ksu-next-bbg`, `ksu-next-susfs`, `ksu-next-susfs-bbg` |
 | `android15-6.6` | `full` | `vanilla`, `bbg`, `ksu`, `ksu-bbg`, `ksu-susfs`, `ksu-susfs-bbg`, `kowsu`, `kowsu-bbg`, `kowsu-susfs`, `kowsu-susfs-bbg`, `ksu-next`, `ksu-next-bbg`, `ksu-next-susfs`, `ksu-next-susfs-bbg` |
 
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for release history.
+
 ## Documentation
 
 - [Profiles](docs/profiles.md)
