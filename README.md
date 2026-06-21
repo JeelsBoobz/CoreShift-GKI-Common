@@ -103,7 +103,11 @@ See [CHANGELOG.md](CHANGELOG.md) for release history.
 
 ## Credits
 
-- [WildKernels](https://github.com/WildKernels) — ccache configuration patterns and workflow design referenced for the ccache implementation in this project.
+- [tiann/KernelSU](https://github.com/tiann/KernelSU)
+- [KOWX712/KernelSU](https://github.com/KOWX712/KernelSU)
+- [pershoot/KernelSU-Next](https://github.com/pershoot/KernelSU-Next)
+- [simonpunk/susfs4ksu](https://gitlab.com/simonpunk/susfs4ksu)
+- [WildKernels](https://github.com/WildKernels)
 
 ## Scope and non-goals
 
