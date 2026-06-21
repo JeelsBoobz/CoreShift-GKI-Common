@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Populated by setup_ccache_wrappers(); read by disable_wrappers() for cleanup.
+# Declared here so disable_wrappers() is safe to call before setup runs.
+declare -gA INPLACE_RENAMES=()
+
 usage() {
   echo "Usage: scripts/setup-ccache-wrappers.sh <workspace-dir> [build-config]" >&2
 }
@@ -28,7 +32,7 @@ disable_wrappers() {
   # kernel build invokes it — which calls ccache with the Go-wrapper .real binary
   # that then fails looking for .real-real.
   local wrapper_bin backup_bin
-  for wrapper_bin in "${!INPLACE_RENAMES[@]+"${!INPLACE_RENAMES[@]}"}"; do
+  for wrapper_bin in "${!INPLACE_RENAMES[@]}"; do
     backup_bin="${INPLACE_RENAMES[$wrapper_bin]}"
     if [ -f "$backup_bin" ] && [ -f "$wrapper_bin" ]; then
       mv "$backup_bin" "$wrapper_bin"
