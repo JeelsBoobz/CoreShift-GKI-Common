@@ -236,7 +236,40 @@ setup_ccache_wrappers() {
     ln -sfn "$CCACHE_BIN" "$WRAPPER_DIR/$tool"
   done
 
-  compiler_path_prefix="$(IFS=:; printf '%s' "${compiler_dirs[*]}")"
+  # Install wrapper scripts directly in $best_dir so that build.sh's internal
+  # PATH="$CLANG_PREBUILT_BIN:$PATH" prepend does not bypass ccache. The wrapper
+  # script passes the explicit .real path to ccache, so CCACHE_PATH lookup is not
+  # used for this flow. A forwarding dir with .real symlinks is provided as the
+  # CCACHE_PATH entry so the WRAPPER_DIR PATH-based symlinks also resolve to the
+  # real binaries without looping through the wrapper scripts.
+  CCACHE_REAL_BIN_DIR="$WRAPPER_DIR/real-clang-bin"
+  mkdir -p "$CCACHE_REAL_BIN_DIR"
+  inplace_count=0
+  for tool in clang clang++ clang-cpp; do
+    real_bin="$best_dir/$tool"
+    real_bin_backup="$best_dir/${tool}.real"
+    if [ -x "$real_bin" ] && [ ! -e "$real_bin_backup" ] && [ ! -L "$real_bin" ]; then
+      mv "$real_bin" "$real_bin_backup"
+      {
+        printf '#!/bin/sh\n'
+        printf 'exec %s %s "$@"\n' "$CCACHE_BIN" "$real_bin_backup"
+      } > "$real_bin"
+      chmod +x "$real_bin"
+      echo "installed in-place ccache wrapper: $real_bin"
+      inplace_count=$(( inplace_count + 1 ))
+    fi
+    if [ -x "$real_bin_backup" ]; then
+      ln -sfn "$real_bin_backup" "$CCACHE_REAL_BIN_DIR/$tool"
+    fi
+  done
+  [ "$inplace_count" -gt 0 ] && echo "in-place wrappers installed: $inplace_count (in $best_dir)" \
+    || echo "in-place wrappers: already present or no tools found in $best_dir"
+
+  compiler_dirs_for_ccache=("$CCACHE_REAL_BIN_DIR")
+  for _d in "${compiler_dirs[@]}"; do
+    [ "$_d" != "$best_dir" ] && compiler_dirs_for_ccache+=("$_d")
+  done
+  compiler_path_prefix="$(IFS=:; printf '%s' "${compiler_dirs_for_ccache[*]}")"
   export CCACHE_WRAPPER_DIR="$WRAPPER_DIR"
   export CCACHE_PATH="$compiler_path_prefix:$ORIGINAL_PATH"
   export CORESHIFT_CCACHE_WRAPPERS_ENABLED=1
