@@ -1,6 +1,6 @@
 --- a/kernel/feature/sucompat.c	2026-06-21 16:57:12.728000436 +0000
 +++ b/kernel/feature/sucompat.c	2026-06-21 16:54:24.040000426 +0000
-@@ -24,29 +24,37 @@
+@@ -24,29 +24,38 @@
  #include "klog.h" // IWYU pragma: keep
  #include "runtime/ksud.h"
  #include "feature/sucompat.h"
@@ -10,6 +10,7 @@
  #include "sulog/event.h"
 -#include "ksu.h"
 -#include "util.h"
++#include "util.h"
 +#include "uapi/sulog.h"
  
  #define SU_PATH "/system/bin/su"
@@ -44,7 +45,7 @@
      pr_info("su_compat: set to %d\n", enable);
      return 0;
  }
-@@ -81,106 +89,219 @@
+@@ -81,106 +89,220 @@
      return userspace_stack_buffer(ksud_path, sizeof(ksud_path));
  }
  
@@ -391,7 +392,8 @@
 -    ret = ksu_syscall_table[__NR_execveat](regs);
 +    ret = ksu_syscall_table[__NR_execveat]((struct pt_regs *)regs);
      if (ret < 0) {
-         close_fd(tmp_fd);
+-        close_fd(tmp_fd);
++        ksu_close_fd(tmp_fd);
 -        regs->__PT_PARM1_REG = orig_regs[0];
 -        regs->__PT_PARM2_REG = orig_regs[1];
 -        regs->__PT_PARM3_REG = orig_regs[2];
@@ -422,7 +424,7 @@
  void __exit ksu_sucompat_exit()
 --- a/kernel/supercall/supercall.c	2026-06-21 16:58:17.576000440 +0000
 +++ b/kernel/supercall/supercall.c	2026-06-21 16:20:14.528000304 +0000
-@@ -83,6 +83,25 @@
+@@ -83,5 +83,24 @@
      kfree(tw);
  }
  
