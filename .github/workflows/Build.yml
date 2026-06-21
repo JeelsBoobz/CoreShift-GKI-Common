@@ -389,7 +389,9 @@ jobs:
             2>/dev/null || true
           zip_path="$(find "dist/${{ matrix.profile }}" -maxdepth 1 -name '*.zip' -type f | head -1)"
           base="${zip_path##*/}"; base="${base%.zip}"
-          clean_name="${base%%-CoreShift*}-${{ matrix.variant }}.zip"
+          kver="${base%%-CoreShift*}"
+          kver="${kver%%-[0-9]*-g*}"
+          clean_name="${kver}-CoreShift-${{ matrix.variant }}.zip"
           mv "$zip_path" "dist/${{ matrix.profile }}/$clean_name"
           gh release upload "$TAG" "dist/${{ matrix.profile }}/$clean_name" --clobber
 
