@@ -589,17 +589,22 @@ log "Resolved KernelSU source tree: $KERNELSU_DIR"
 declare -a config_patch_inputs=()
 KERNELSU_PATCH_FILE="$(find_susfs_repo_path 'KernelSU/10_enable_susfs_for_ksu.patch' || true)"
 if [ -n "$KERNELSU_PATCH_FILE" ]; then
-  if [ "$KSU_VARIANT" = "kowsu" ]; then
+  if [ "$KSU_VARIANT" = "ksu-next" ]; then
+    # dev-susfs branch of KernelSU-Next already has susfs integrated via setup.sh.
+    # Applying 10_enable_susfs_for_ksu.patch would double-patch.
+    log "Skipping KernelSU SUSFS patch (ksu-next dev-susfs branch pre-integrates susfs)"
+  elif [ "$KSU_VARIANT" = "kowsu" ]; then
     # KOWX712/KernelSU diverges from tiann in two files (sucompat.c, supercall.c).
     # Apply the upstream patch in best-effort mode (27/29 hunks apply cleanly),
     # then let the local kowsu fixup patch handle the two diverged files.
     log "Using KernelSU SUSFS patch (best-effort for kowsu): $KERNELSU_PATCH_FILE"
     apply_patch_file_best_effort "$KERNELSU_PATCH_FILE" "$KERNELSU_DIR" "kernelsu"
+    config_patch_inputs+=("$KERNELSU_PATCH_FILE")
   else
     log "Using KernelSU SUSFS patch: $KERNELSU_PATCH_FILE"
     apply_patch_file "$KERNELSU_PATCH_FILE" "$KERNELSU_DIR" "kernelsu"
+    config_patch_inputs+=("$KERNELSU_PATCH_FILE")
   fi
-  config_patch_inputs+=("$KERNELSU_PATCH_FILE")
 else
   log "KernelSU SUSFS patch not present in selected ref"
 fi

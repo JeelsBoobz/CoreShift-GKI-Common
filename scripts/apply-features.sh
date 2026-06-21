@@ -121,18 +121,21 @@ if feature_requested "kowsu" "${trimmed_features[@]}"; then
 fi
 
 if feature_requested "ksu-next" "${trimmed_features[@]}"; then
-  KSU_REPO="${KSU_NEXT_REPO:-https://github.com/pershoot/KernelSU-Next.git}" \
-    "$SCRIPT_DIR/apply-ksu.sh" "$WORKSPACE_DIR"
+  if feature_requested "susfs" "${trimmed_features[@]}"; then
+    KSU_REPO="${KSU_NEXT_REPO:-https://github.com/pershoot/KernelSU-Next.git}" \
+      KSU_REF="${KSU_NEXT_SUSFS_REF:-dev-susfs}" \
+      "$SCRIPT_DIR/apply-ksu.sh" "$WORKSPACE_DIR"
+  else
+    KSU_REPO="${KSU_NEXT_REPO:-https://github.com/pershoot/KernelSU-Next.git}" \
+      "$SCRIPT_DIR/apply-ksu.sh" "$WORKSPACE_DIR"
+  fi
 fi
 
 if feature_requested "susfs" "${trimmed_features[@]}"; then
   if feature_requested "kowsu" "${trimmed_features[@]}"; then
     KSU_VARIANT=kowsu "$SCRIPT_DIR/apply-susfs.sh" "$WORKSPACE_DIR" "$PROFILE_NAME"
   elif feature_requested "ksu-next" "${trimmed_features[@]}"; then
-    KSU_VARIANT=ksu-next \
-      SUSFS_REPO="${KSU_NEXT_SUSFS_REPO:-https://gitlab.com/pershoot/susfs4ksu.git}" \
-      SUSFS_REFS_CONFIG="${KSU_NEXT_SUSFS_REFS_CONFIG:-}" \
-      "$SCRIPT_DIR/apply-susfs.sh" "$WORKSPACE_DIR" "$PROFILE_NAME"
+    KSU_VARIANT=ksu-next "$SCRIPT_DIR/apply-susfs.sh" "$WORKSPACE_DIR" "$PROFILE_NAME"
   else
     "$SCRIPT_DIR/apply-susfs.sh" "$WORKSPACE_DIR" "$PROFILE_NAME"
   fi
