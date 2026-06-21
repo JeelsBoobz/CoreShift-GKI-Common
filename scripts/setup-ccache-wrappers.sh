@@ -23,6 +23,18 @@ disable_wrappers() {
   unset CCACHE_WRAPPER_DIR
   unset CCACHE_PATH
   export PATH="$ORIGINAL_PATH"
+  # Undo any in-place renames so the original compiler binary is restored.
+  # Without this, the wrapper script we wrote at $tool stays in place and the
+  # kernel build invokes it — which calls ccache with the Go-wrapper .real binary
+  # that then fails looking for .real-real.
+  local wrapper_bin backup_bin
+  for wrapper_bin in "${!INPLACE_RENAMES[@]+"${!INPLACE_RENAMES[@]}"}"; do
+    backup_bin="${INPLACE_RENAMES[$wrapper_bin]}"
+    if [ -f "$backup_bin" ] && [ -f "$wrapper_bin" ]; then
+      mv "$backup_bin" "$wrapper_bin"
+      echo "restored in-place wrapper: $wrapper_bin"
+    fi
+  done
   persist_wrapper_state
   echo "$message"
 }
@@ -169,6 +181,7 @@ setup_ccache_wrappers() {
   declare -gA CANDIDATE_PRIORITY=()
   declare -gA CANDIDATE_FAMILY=()
   declare -gA CANDIDATE_VERSION=()
+  declare -gA INPLACE_RENAMES=()
 
   # Highest-priority candidate: CLANG_PREBUILT_BIN env var (set by build-kernel.sh
   # when a custom clang tarball was downloaded). Accepted even outside WORKSPACE_DIR.
@@ -272,6 +285,7 @@ setup_ccache_wrappers() {
         printf 'exec %s %s "$@"\n' "$CCACHE_BIN" "$real_bin_backup"
       } > "$real_bin"
       chmod +x "$real_bin"
+      INPLACE_RENAMES["$real_bin"]="$real_bin_backup"
       echo "installed in-place ccache wrapper: $real_bin"
       inplace_count=$(( inplace_count + 1 ))
     fi
