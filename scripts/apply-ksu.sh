@@ -18,6 +18,7 @@ FEATURES_FRAGMENT="$COMMON_DIR/features.fragment"
 KSU_DIR="$COMMON_DIR/KernelSU"
 KSU_REPO="${KSU_REPO:-https://github.com/tiann/KernelSU.git}"
 KSU_REF="${KSU_REF:-main}"
+KSU_CLONE_BRANCH="${KSU_CLONE_BRANCH:-}"
 if [ -n "${CORESHIFT_LOG_DIR:-}" ]; then
   KSU_LOG_DIR="$CORESHIFT_LOG_DIR/patches/ksu"
   mkdir -p "$KSU_LOG_DIR"
@@ -57,10 +58,16 @@ if [ -e "$KSU_DIR" ] && [ ! -d "$KSU_DIR/.git" ]; then
 fi
 
 if [ -d "$KSU_DIR/.git" ]; then
-  git -C "$KSU_DIR" fetch --depth 1 origin "$KSU_REF"
-  git -C "$KSU_DIR" checkout -B "$KSU_REF" FETCH_HEAD
+  if [ -n "$KSU_CLONE_BRANCH" ]; then
+    git -C "$KSU_DIR" fetch --depth 1 origin "$KSU_CLONE_BRANCH"
+    git -C "$KSU_DIR" checkout -B "$KSU_CLONE_BRANCH" FETCH_HEAD
+  fi
 else
-  git clone --depth 1 -b "$KSU_REF" "$KSU_REPO" "$KSU_DIR"
+  if [ -n "$KSU_CLONE_BRANCH" ]; then
+    git clone --depth 1 -b "$KSU_CLONE_BRANCH" "$KSU_REPO" "$KSU_DIR"
+  else
+    git clone --depth 1 "$KSU_REPO" "$KSU_DIR"
+  fi
 fi
 
 if [ ! -f "$KSU_DIR/kernel/setup.sh" ]; then

@@ -124,6 +124,7 @@ if feature_requested "ksu-next" "${trimmed_features[@]}"; then
   if feature_requested "susfs" "${trimmed_features[@]}"; then
     KSU_REPO="${KSU_NEXT_REPO:-https://github.com/pershoot/KernelSU-Next.git}" \
       KSU_REF="${KSU_NEXT_SUSFS_REF:-dev-susfs}" \
+      KSU_CLONE_BRANCH="${KSU_NEXT_SUSFS_REF:-dev-susfs}" \
       "$SCRIPT_DIR/apply-ksu.sh" "$WORKSPACE_DIR"
   else
     KSU_REPO="${KSU_NEXT_REPO:-https://github.com/pershoot/KernelSU-Next.git}" \
