@@ -330,7 +330,7 @@ jobs:
           zip_path="$(find "dist/${{ matrix.profile }}" -maxdepth 1 -name '*.zip' -type f | head -1)"
           base="${zip_path##*/}"; base="${base%.zip}"
           kver="${base%%-CoreShift*}"
-          kver="${kver%%-[0-9]*-g*}"
+          kver="$(printf '%s' "$kver" | sed 's/-maybe-dirty//g; s/-dirty//g; s/-[0-9]\{1,\}-g[0-9a-f]\{7,\}//g')"
           clean_name="${kver}-CoreShift-${{ matrix.variant }}.zip"
           mv "$zip_path" "dist/${{ matrix.profile }}/$clean_name"
           gh release upload "$TAG" "dist/${{ matrix.profile }}/$clean_name" --clobber

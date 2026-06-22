@@ -139,10 +139,12 @@ cp -f "$RAW_IMAGE_PATH" "$AK3_DIR/Image"
 cp -f "$FINAL_CONFIG_PATH" "$AK3_DIR/ikconfig.txt"
 cp -f "$FINAL_CONFIG_PATH" "$ARTIFACT_DIR/ikconfig.txt"
 
-kernel_version="$(strings "$AK3_DIR/Image" 2>/dev/null | grep -E -m1 'Linux version ' | awk '{print $3}' || true)"
+kernel_version="$(strings "$AK3_DIR/Image" 2>/dev/null | grep -E -m1 'Linux version [0-9]+\.[0-9]+' | awk '{print $3}' || true)"
 if [ -z "$kernel_version" ]; then
   kernel_version="$PROFILE_NAME"
 fi
+# Strip git hash (-<N>-g<hexchars>) and dirty markers (-maybe-dirty, -dirty)
+kernel_version="$(printf '%s' "$kernel_version" | sed 's/-maybe-dirty//g; s/-dirty//g; s/-[0-9]\{1,\}-g[0-9a-f]\{7,\}//g')"
 
 sanitized_kernel_version="$(
   printf '%s' "$kernel_version" \
