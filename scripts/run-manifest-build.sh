@@ -107,6 +107,10 @@ case "$BUILD_MODE" in
       echo "CCACHE_DIR=${CCACHE_DIR:-}"
       echo "CCACHE_WRAPPER_DIR=${CCACHE_WRAPPER_DIR:-}"
       echo "CCACHE_PATH=${CCACHE_PATH:-}"
+      echo "CLANG_PREBUILT_BIN=${CLANG_PREBUILT_BIN:-}"
+      if [ -n "${CLANG_PREBUILT_BIN:-}" ]; then
+        export CLANG_PREBUILT_BIN
+      fi
       command -v clang || true
       readlink -f "$(command -v clang 2>/dev/null)" 2>/dev/null || true
       clang_version_output="$(clang --version 2>/dev/null | head -n 3 || true)"
@@ -126,6 +130,9 @@ case "$BUILD_MODE" in
       echo "SKIP_CP_KERNEL_HDRS=${SKIP_CP_KERNEL_HDRS:-}"
       echo "LLVM_PARALLEL_LINK_JOBS=${LLVM_PARALLEL_LINK_JOBS:-}"
       echo "LLD_PARALLEL_LINK_JOBS=${LLD_PARALLEL_LINK_JOBS:-}"
+      if [ -n "${CLANG_PREBUILT_BIN:-}" ]; then
+        echo "resolved CLANG_PREBUILT_BIN=$(readlink -f "$CLANG_PREBUILT_BIN" 2>/dev/null || printf "%s" "$CLANG_PREBUILT_BIN")"
+      fi
       if [ -n "$jobs" ]; then
         BUILD_CONFIG="$selected_build_config" build/build.sh -j"$jobs" "$@"
       else

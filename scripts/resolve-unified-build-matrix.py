@@ -111,6 +111,8 @@ def main() -> None:
     includes: list[dict] = []
     for ver in versions:
         profile = ver + "-lts"
+        manifest_url_override = ""
+        manifest_branch_override = ""
         kernel_common_url = ""
         kernel_source_branch_override = ""
         label = profile
@@ -121,6 +123,8 @@ def main() -> None:
             kernel_source_branch_override = date_branch_map[ver]
             label = date_branch_map[ver]
         elif SOURCE_TYPE == "custom":
+            manifest_url_override = CUSTOM_URL
+            manifest_branch_override = CUSTOM_BRANCH
             kernel_common_url = CUSTOM_URL
             kernel_source_branch_override = CUSTOM_BRANCH
 
@@ -129,6 +133,8 @@ def main() -> None:
                 **entry,
                 "label": label,
                 "artifact_name": f"ak3-{label}-{entry['variant']}",
+                "manifest_url_override": manifest_url_override,
+                "manifest_branch_override": manifest_branch_override,
                 "kernel_common_url": kernel_common_url,
                 "kernel_source_branch_override": kernel_source_branch_override,
             })

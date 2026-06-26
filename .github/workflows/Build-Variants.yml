@@ -257,8 +257,14 @@ jobs:
             echo "profile=${{ matrix.profile }}"
             echo "variant=${{ matrix.variant }}"
             echo "label=${{ matrix.label }}"
+            [ -n "${{ matrix.manifest_url_override }}" ] && \
+              echo "manifest_url=${{ matrix.manifest_url_override }}"
+            [ -n "${{ matrix.manifest_branch_override }}" ] && \
+              echo "manifest_branch=${{ matrix.manifest_branch_override }}"
             [ -n "${{ matrix.kernel_source_branch_override }}" ] && \
               echo "kernel_source_branch=${{ matrix.kernel_source_branch_override }}"
+            [ -n "${{ matrix.kernel_common_url }}" ] && \
+              echo "kernel_common_url=${{ matrix.kernel_common_url }}"
             date -u '+date_utc=%Y-%m-%dT%H:%M:%SZ'
           } > "$LOG_DIR/metadata.txt"
 
@@ -271,6 +277,12 @@ jobs:
           export CORESHIFT_LOG_DIR="$LOG_DIR"
 
           build_env_args=()
+          [ -n "${{ matrix.manifest_url_override }}" ] && \
+            build_env_args+=(--build-env "MANIFEST_URL_OVERRIDE=${{ matrix.manifest_url_override }}")
+          [ -n "${{ matrix.manifest_branch_override }}" ] && \
+            build_env_args+=(--build-env "MANIFEST_BRANCH_OVERRIDE=${{ matrix.manifest_branch_override }}")
+          [ -n "${{ matrix.kernel_common_url }}" ] && \
+            build_env_args+=(--build-env "KERNEL_COMMON_URL=${{ matrix.kernel_common_url }}")
           [ -n "${{ matrix.kernel_source_branch_override }}" ] && \
             build_env_args+=(--build-env "KERNEL_SOURCE_BRANCH_OVERRIDE=${{ matrix.kernel_source_branch_override }}")
           [ -n "${{ steps.clang-download.outputs.clang_prebuilt_bin }}" ] && \

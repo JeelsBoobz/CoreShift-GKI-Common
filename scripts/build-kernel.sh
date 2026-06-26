@@ -393,6 +393,8 @@ if [ "$SKIP_SETUP" -eq 0 ]; then
     CORESHIFT_REPO_PARTIAL_CLONE \
     CORESHIFT_REPO_CLONE_FILTER \
     CORESHIFT_REPO_NO_VERIFY \
+    MANIFEST_URL_OVERRIDE \
+    MANIFEST_BRANCH_OVERRIDE \
     KERNEL_COMMON_URL \
     KERNEL_SOURCE_BRANCH_OVERRIDE \
     CORESHIFT_MANIFEST_OVERLAY_MODE
@@ -437,6 +439,9 @@ for passthrough_key in \
   CORESHIFT_REPO_PARTIAL_CLONE \
   CORESHIFT_REPO_CLONE_FILTER \
   CORESHIFT_REPO_NO_VERIFY \
+  MANIFEST_URL_OVERRIDE \
+  MANIFEST_BRANCH_OVERRIDE \
+  CLANG_PREBUILT_BIN \
   BBG_REPO \
   BBG_REF \
   KSU_REPO \
@@ -584,6 +589,10 @@ else
   echo "Skipping workspace commit because --no-commit-workspace was requested."
 fi
 
+if has_build_env_key "CLANG_PREBUILT_BIN"; then
+  export CLANG_PREBUILT_BIN="$(get_build_env_value "CLANG_PREBUILT_BIN")"
+fi
+
 if has_build_env_key "CORESHIFT_CCACHE_DEBUG" && ! has_build_env_key "CCACHE_LOGFILE"; then
   add_default_build_env "CCACHE_LOGFILE" "$WORKSPACE_DIR/ccache.log"
 fi
@@ -628,6 +637,21 @@ if [ -f "$ARTIFACT_DIR/ak3-zip-path.txt" ]; then
 fi
 if [ -n "$BUILD_CONFIG_OVERRIDE_VALUE" ]; then
   echo "  build config override: $BUILD_CONFIG_OVERRIDE_VALUE"
+fi
+if has_build_env_key "MANIFEST_URL_OVERRIDE"; then
+  echo "  manifest url override: $(get_build_env_value "MANIFEST_URL_OVERRIDE")"
+fi
+if has_build_env_key "MANIFEST_BRANCH_OVERRIDE"; then
+  echo "  manifest branch override: $(get_build_env_value "MANIFEST_BRANCH_OVERRIDE")"
+fi
+if has_build_env_key "KERNEL_COMMON_URL"; then
+  echo "  kernel common url override: $(get_build_env_value "KERNEL_COMMON_URL")"
+fi
+if has_build_env_key "KERNEL_SOURCE_BRANCH_OVERRIDE"; then
+  echo "  kernel source branch override: $(get_build_env_value "KERNEL_SOURCE_BRANCH_OVERRIDE")"
+fi
+if has_build_env_key "CLANG_PREBUILT_BIN"; then
+  echo "  clang prebuilt bin override: $(get_build_env_value "CLANG_PREBUILT_BIN")"
 fi
 echo "  effective LTO: ${EFFECTIVE_LTO:-}"
 if [ "$SELECTED_MODE" = "google_build_sh" ]; then

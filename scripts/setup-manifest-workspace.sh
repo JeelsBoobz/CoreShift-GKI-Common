@@ -31,7 +31,8 @@ done
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROFILE_JSON="$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
 WORKSPACE_DIR="$2"
-MANIFEST_URL="https://android.googlesource.com/kernel/manifest"
+DEFAULT_MANIFEST_URL="https://android.googlesource.com/kernel/manifest"
+MANIFEST_URL="${MANIFEST_URL_OVERRIDE:-$DEFAULT_MANIFEST_URL}"
 KERNEL_COMMON_URL="${KERNEL_COMMON_URL:-https://android.googlesource.com/kernel/common}"
 CORESHIFT_REPO_JOBS="${CORESHIFT_REPO_JOBS:-4}"
 CORESHIFT_REPO_DEPTH="${CORESHIFT_REPO_DEPTH:-1}"
@@ -70,7 +71,8 @@ for field in required_strings:
 PY
 )"
 
-# Allow overriding the kernel source branch via env var (e.g. custom-source builds).
+# Allow overriding the manifest repo/branch and kernel source branch via env vars.
+MANIFEST_BRANCH="${MANIFEST_BRANCH_OVERRIDE:-$MANIFEST_BRANCH}"
 KERNEL_SOURCE_BRANCH="${KERNEL_SOURCE_BRANCH_OVERRIDE:-$KERNEL_SOURCE_BRANCH}"
 
 mkdir -p "$WORKSPACE_DIR"
@@ -111,7 +113,9 @@ esac
 echo "Workspace setup:"
 echo "  repo launcher path: $(command -v repo)"
 echo "  repo launcher version: $(repo_launcher_version)"
+echo "  manifest url: $MANIFEST_URL"
 echo "  manifest branch: $MANIFEST_BRANCH"
+echo "  kernel common url: $KERNEL_COMMON_URL"
 echo "  kernel source branch: $KERNEL_SOURCE_BRANCH"
 echo "  manifest overlay policy path: $MANIFEST_OVERLAY"
 echo "  manifest overlay mode: $MANIFEST_OVERLAY_MODE"
@@ -124,7 +128,9 @@ if [ -n "$manifest_workspace_log" ]; then
     echo "Workspace setup:"
     echo "  repo launcher path: $(command -v repo)"
     echo "  repo launcher version: $(repo_launcher_version)"
+    echo "  manifest url: $MANIFEST_URL"
     echo "  manifest branch: $MANIFEST_BRANCH"
+    echo "  kernel common url: $KERNEL_COMMON_URL"
     echo "  kernel source branch: $KERNEL_SOURCE_BRANCH"
     echo "  manifest overlay policy path: $MANIFEST_OVERLAY"
     echo "  manifest overlay mode: $MANIFEST_OVERLAY_MODE"
