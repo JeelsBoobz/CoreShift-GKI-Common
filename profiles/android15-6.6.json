@@ -1,9 +1,9 @@
 {
   "name": "android15-6.6",
-  "manifest_branch": "common-android15-6.6",
+  "manifest_branch": "common-android15-6.6-lts",
   "manifest_overlay": "manifests/overlays/android15-6.6.json",
   "manifest_overlay_mode": "safe",
-  "kernel_source_branch": "android15-6.6",
+  "kernel_source_branch": "android15-6.6-lts",
   "build_config": "common/build.config.gki.aarch64",
   "bazel_target": "//common:kernel_dist",
   "lto": "full"

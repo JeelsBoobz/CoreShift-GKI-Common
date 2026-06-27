@@ -1,9 +1,9 @@
 {
   "name": "android11-5.4",
-  "manifest_branch": "common-android11-5.4",
+  "manifest_branch": "common-android11-5.4-lts",
   "manifest_overlay": "manifests/overlays/android11-5.4.json",
   "manifest_overlay_mode": "safe",
-  "kernel_source_branch": "android11-5.4",
+  "kernel_source_branch": "android11-5.4-lts",
   "build_config": "common/build.config.gki.aarch64",
   "bazel_target": null,
   "lto": "full"
