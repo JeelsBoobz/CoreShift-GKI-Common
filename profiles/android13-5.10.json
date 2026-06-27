@@ -1,0 +1,10 @@
+{
+  "name": "android13-5.10",
+  "manifest_branch": "common-android13-5.10",
+  "manifest_overlay": "manifests/overlays/android13-5.10.json",
+  "manifest_overlay_mode": "safe",
+  "kernel_source_branch": "android13-5.10",
+  "build_config": "common/build.config.gki.aarch64",
+  "bazel_target": "//common:kernel_dist",
+  "lto": "full"
+}

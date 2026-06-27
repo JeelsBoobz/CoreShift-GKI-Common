@@ -13,14 +13,14 @@ from pathlib import Path
 
 
 EXPECTED_BRANCHES = (
-    "android11-5.4-lts",
-    "android12-5.4-lts",
-    "android12-5.10-lts",
-    "android13-5.10-lts",
-    "android13-5.15-lts",
-    "android14-5.15-lts",
-    "android14-6.1-lts",
-    "android15-6.6-lts",
+    "android11-5.4",
+    "android12-5.4",
+    "android12-5.10",
+    "android13-5.10",
+    "android13-5.15",
+    "android14-5.15",
+    "android14-6.1",
+    "android15-6.6",
 )
 
 REQUIRED_FIELDS = (

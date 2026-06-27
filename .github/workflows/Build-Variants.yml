@@ -33,13 +33,22 @@ on:
           - ksu-susfs-bbg
           - kowsu
           - kowsu-bbg
-          - kowsu-susfs
-          - kowsu-susfs-bbg
           - ksu-next
           - ksu-next-bbg
           - ksu-next-susfs
           - ksu-next-susfs-bbg
           - droidspaces
+          - droidspaces-bbg
+          - ksu-droidspaces
+          - ksu-bbg-droidspaces
+          - ksu-susfs-droidspaces
+          - ksu-susfs-bbg-droidspaces
+          - kowsu-droidspaces
+          - kowsu-bbg-droidspaces
+          - ksu-next-droidspaces
+          - ksu-next-bbg-droidspaces
+          - ksu-next-susfs-droidspaces
+          - ksu-next-susfs-bbg-droidspaces
       output_mode:
         description: "Output mode — artifacts: GitHub Actions artifact · release: GitHub pre-release"
         required: true

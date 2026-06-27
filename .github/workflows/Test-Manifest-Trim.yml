@@ -10,14 +10,14 @@ on:
         type: choice
         options:
           - all
-          - android11-5.4-lts
-          - android12-5.4-lts
-          - android12-5.10-lts
-          - android13-5.10-lts
-          - android13-5.15-lts
-          - android14-5.15-lts
-          - android14-6.1-lts
-          - android15-6.6-lts
+          - android11-5.4
+          - android12-5.4
+          - android12-5.10
+          - android13-5.10
+          - android13-5.15
+          - android14-5.15
+          - android14-6.1
+          - android15-6.6
       extra_remove_projects:
         description: "Comma-separated extra project names to remove for this test run only."
         required: false
@@ -51,14 +51,14 @@ jobs:
 
           selected = sys.argv[1]
           profiles = [
-              "android11-5.4-lts",
-              "android12-5.4-lts",
-              "android12-5.10-lts",
-              "android13-5.10-lts",
-              "android13-5.15-lts",
-              "android14-5.15-lts",
-              "android14-6.1-lts",
-              "android15-6.6-lts",
+              "android11-5.4",
+              "android12-5.4",
+              "android12-5.10",
+              "android13-5.10",
+              "android13-5.15",
+              "android14-5.15",
+              "android14-6.1",
+              "android15-6.6",
           ]
 
           include = [{"profile": profile} for profile in profiles] if selected == "all" else [{"profile": selected}]

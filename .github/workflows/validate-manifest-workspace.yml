@@ -53,8 +53,8 @@ jobs:
           set -euo pipefail
           python3 scripts/validate-profiles.py
           python3 scripts/resolve-build-matrix.py
-          python3 scripts/resolve-build-matrix.py --profile android12-5.10-lts
-          python3 scripts/resolve-build-matrix.py --profile android12-5.10-lts --variant vanilla
+          python3 scripts/resolve-build-matrix.py --profile android12-5.10
+          python3 scripts/resolve-build-matrix.py --profile android12-5.10 --variant vanilla
 
       - name: Check stale toolchains references
         shell: bash

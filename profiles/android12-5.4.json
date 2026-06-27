@@ -1,0 +1,10 @@
+{
+  "name": "android12-5.4",
+  "manifest_branch": "common-android12-5.4",
+  "manifest_overlay": "manifests/overlays/android12-5.4.json",
+  "manifest_overlay_mode": "safe",
+  "kernel_source_branch": "android12-5.4",
+  "build_config": "common/build.config.gki.aarch64",
+  "bazel_target": null,
+  "lto": "full"
+}

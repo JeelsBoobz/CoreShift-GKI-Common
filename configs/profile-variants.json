@@ -1,16 +1,18 @@
 {
   "profiles": {
-    "android11-5.4-lts": [
+    "android11-5.4": [
       "vanilla",
       "bbg",
-      "droidspaces"
+      "droidspaces",
+      "droidspaces-bbg"
     ],
-    "android12-5.4-lts": [
+    "android12-5.4": [
       "vanilla",
       "bbg",
-      "droidspaces"
+      "droidspaces",
+      "droidspaces-bbg"
     ],
-    "android12-5.10-lts": [
+    "android12-5.10": [
       "vanilla",
       "bbg",
       "ksu",
@@ -23,9 +25,20 @@
       "ksu-next-bbg",
       "ksu-next-susfs",
       "ksu-next-susfs-bbg",
-      "droidspaces"
+      "droidspaces",
+      "droidspaces-bbg",
+      "ksu-droidspaces",
+      "ksu-bbg-droidspaces",
+      "ksu-susfs-droidspaces",
+      "ksu-susfs-bbg-droidspaces",
+      "kowsu-droidspaces",
+      "kowsu-bbg-droidspaces",
+      "ksu-next-droidspaces",
+      "ksu-next-bbg-droidspaces",
+      "ksu-next-susfs-droidspaces",
+      "ksu-next-susfs-bbg-droidspaces"
     ],
-    "android13-5.10-lts": [
+    "android13-5.10": [
       "vanilla",
       "bbg",
       "ksu",
@@ -38,9 +51,20 @@
       "ksu-next-bbg",
       "ksu-next-susfs",
       "ksu-next-susfs-bbg",
-      "droidspaces"
+      "droidspaces",
+      "droidspaces-bbg",
+      "ksu-droidspaces",
+      "ksu-bbg-droidspaces",
+      "ksu-susfs-droidspaces",
+      "ksu-susfs-bbg-droidspaces",
+      "kowsu-droidspaces",
+      "kowsu-bbg-droidspaces",
+      "ksu-next-droidspaces",
+      "ksu-next-bbg-droidspaces",
+      "ksu-next-susfs-droidspaces",
+      "ksu-next-susfs-bbg-droidspaces"
     ],
-    "android13-5.15-lts": [
+    "android13-5.15": [
       "vanilla",
       "bbg",
       "ksu",
@@ -53,9 +77,20 @@
       "ksu-next-bbg",
       "ksu-next-susfs",
       "ksu-next-susfs-bbg",
-      "droidspaces"
+      "droidspaces",
+      "droidspaces-bbg",
+      "ksu-droidspaces",
+      "ksu-bbg-droidspaces",
+      "ksu-susfs-droidspaces",
+      "ksu-susfs-bbg-droidspaces",
+      "kowsu-droidspaces",
+      "kowsu-bbg-droidspaces",
+      "ksu-next-droidspaces",
+      "ksu-next-bbg-droidspaces",
+      "ksu-next-susfs-droidspaces",
+      "ksu-next-susfs-bbg-droidspaces"
     ],
-    "android14-5.15-lts": [
+    "android14-5.15": [
       "vanilla",
       "bbg",
       "ksu",
@@ -68,9 +103,20 @@
       "ksu-next-bbg",
       "ksu-next-susfs",
       "ksu-next-susfs-bbg",
-      "droidspaces"
+      "droidspaces",
+      "droidspaces-bbg",
+      "ksu-droidspaces",
+      "ksu-bbg-droidspaces",
+      "ksu-susfs-droidspaces",
+      "ksu-susfs-bbg-droidspaces",
+      "kowsu-droidspaces",
+      "kowsu-bbg-droidspaces",
+      "ksu-next-droidspaces",
+      "ksu-next-bbg-droidspaces",
+      "ksu-next-susfs-droidspaces",
+      "ksu-next-susfs-bbg-droidspaces"
     ],
-    "android14-6.1-lts": [
+    "android14-6.1": [
       "vanilla",
       "bbg",
       "ksu",
@@ -83,9 +129,20 @@
       "ksu-next-bbg",
       "ksu-next-susfs",
       "ksu-next-susfs-bbg",
-      "droidspaces"
+      "droidspaces",
+      "droidspaces-bbg",
+      "ksu-droidspaces",
+      "ksu-bbg-droidspaces",
+      "ksu-susfs-droidspaces",
+      "ksu-susfs-bbg-droidspaces",
+      "kowsu-droidspaces",
+      "kowsu-bbg-droidspaces",
+      "ksu-next-droidspaces",
+      "ksu-next-bbg-droidspaces",
+      "ksu-next-susfs-droidspaces",
+      "ksu-next-susfs-bbg-droidspaces"
     ],
-    "android15-6.6-lts": [
+    "android15-6.6": [
       "vanilla",
       "bbg",
       "ksu",
@@ -98,7 +155,18 @@
       "ksu-next-bbg",
       "ksu-next-susfs",
       "ksu-next-susfs-bbg",
-      "droidspaces"
+      "droidspaces",
+      "droidspaces-bbg",
+      "ksu-droidspaces",
+      "ksu-bbg-droidspaces",
+      "ksu-susfs-droidspaces",
+      "ksu-susfs-bbg-droidspaces",
+      "kowsu-droidspaces",
+      "kowsu-bbg-droidspaces",
+      "ksu-next-droidspaces",
+      "ksu-next-bbg-droidspaces",
+      "ksu-next-susfs-droidspaces",
+      "ksu-next-susfs-bbg-droidspaces"
     ]
   }
 }
