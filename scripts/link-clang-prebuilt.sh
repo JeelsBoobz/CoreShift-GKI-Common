@@ -28,27 +28,41 @@ if [ ! -d "$CLANG_PREBUILT_BIN" ]; then
   exit 1
 fi
 
-# Resolve CLANG_VERSION from workspace build.config.constants
-CLANG_VERSION=""
-while IFS= read -r constants_file; do
-  if [ -f "$constants_file" ]; then
-    v=$(grep -E '^CLANG_VERSION=' "$constants_file" | cut -d= -f2 | tr -d '[:space:]' | head -1)
-    if [ -n "$v" ]; then
-      CLANG_VERSION="$v"
-      break
-    fi
-  fi
-done < <(find "$WORKSPACE_DIR" -maxdepth 3 -name 'build.config.constants' 2>/dev/null)
-
-if [ -z "$CLANG_VERSION" ]; then
-  echo "Could not determine CLANG_VERSION from workspace build.config.constants." >&2
-  exit 1
-fi
-
 # CLANG_PREBUILT_BIN points to the bin/ dir; toolchain root is one level up
 TOOLCHAIN_ROOT="$(cd "$CLANG_PREBUILT_BIN/.." && pwd)"
-DEST="$WORKSPACE_DIR/prebuilts/clang/host/linux-x86/clang-$CLANG_VERSION"
-mkdir -p "$(dirname "$DEST")"
-ln -sfn "$TOOLCHAIN_ROOT" "$DEST"
+PREBUILTS_DIR="$WORKSPACE_DIR/prebuilts/clang/host/linux-x86"
+mkdir -p "$PREBUILTS_DIR"
 
-echo "Linked clang $CLANG_VERSION: $TOOLCHAIN_ROOT → $DEST"
+# Prefer replacing the existing versioned subdir(s) so the build system finds
+# the override at whatever clang-r* path it expects.  Fall back to the version
+# read from build.config.constants when no prebuilt dirs exist yet.
+linked=0
+for existing in "$PREBUILTS_DIR"/clang-*; do
+  [ -e "$existing" ] || continue
+  ln -sfn "$TOOLCHAIN_ROOT" "$existing"
+  echo "Linked override clang: $TOOLCHAIN_ROOT → $existing"
+  linked=1
+done
+
+if [ "$linked" -eq 0 ]; then
+  # No existing versioned dirs — fall back to build.config.constants
+  CLANG_VERSION=""
+  while IFS= read -r constants_file; do
+    if [ -f "$constants_file" ]; then
+      v=$(grep -E '^CLANG_VERSION=' "$constants_file" | cut -d= -f2 | tr -d '[:space:]' | head -1)
+      if [ -n "$v" ]; then
+        CLANG_VERSION="$v"
+        break
+      fi
+    fi
+  done < <(find "$WORKSPACE_DIR" -maxdepth 6 -name 'build.config.constants' 2>/dev/null)
+
+  if [ -z "$CLANG_VERSION" ]; then
+    echo "Could not determine CLANG_VERSION from workspace build.config.constants." >&2
+    exit 1
+  fi
+
+  DEST="$PREBUILTS_DIR/clang-$CLANG_VERSION"
+  ln -sfn "$TOOLCHAIN_ROOT" "$DEST"
+  echo "Linked clang $CLANG_VERSION: $TOOLCHAIN_ROOT → $DEST"
+fi
