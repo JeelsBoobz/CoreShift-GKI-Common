@@ -133,9 +133,6 @@ def load_variants(path: Path) -> dict[str, dict[str, object]]:
         fail(f"{path}: variant 'vanilla' must exist")
     if vanilla["features"] != [] or vanilla["ak3_suffixes"] != []:
         fail(f"{path}: variant 'vanilla' must have empty features and empty ak3_suffixes")
-    if "bbg" not in variants:
-        fail(f"{path}: variant 'bbg' must exist")
-
     return variants
 
 
