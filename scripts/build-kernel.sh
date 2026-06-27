@@ -420,9 +420,7 @@ if [ ! -e "$WORKSPACE_DIR/prebuilts/rust" ] && command -v rustc >/dev/null 2>&1;
   "$REPO_ROOT/scripts/link-rust-prebuilt.sh" "$WORKSPACE_DIR"
 fi
 
-if [ ! -e "$WORKSPACE_DIR/prebuilts/clang/host/linux-x86" ] && \
-   [ ! -e "$WORKSPACE_DIR/prebuilts-master/clang/host/linux-x86" ] && \
-   has_build_env_key "CLANG_PREBUILT_BIN"; then
+if has_build_env_key "CLANG_PREBUILT_BIN"; then
   CLANG_PREBUILT_BIN="$(get_build_env_value "CLANG_PREBUILT_BIN")" \
     "$REPO_ROOT/scripts/link-clang-prebuilt.sh" "$WORKSPACE_DIR"
 fi

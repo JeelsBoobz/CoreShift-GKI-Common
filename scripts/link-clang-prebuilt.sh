@@ -5,8 +5,8 @@
 
 # Links CLANG_PREBUILT_BIN into the workspace at the versioned path expected
 # by build.sh (prebuilts/clang/host/linux-x86/clang-<version>/).
-# Called by build-kernel.sh when prebuilts/clang/host/linux-x86 is absent
-# (removed by aggressive overlay) and CLANG_PREBUILT_BIN is set.
+# When prebuilts/clang/host/linux-x86 already exists (normal repo sync),
+# replaces just the versioned subdir so the override wins over the built-in.
 
 set -euo pipefail
 
@@ -17,11 +17,6 @@ fi
 
 WORKSPACE_DIR="$1"
 CLANG_PREBUILT_BIN="${CLANG_PREBUILT_BIN:-}"
-
-if [ -e "$WORKSPACE_DIR/prebuilts/clang/host/linux-x86" ]; then
-  echo "prebuilts/clang/host/linux-x86 already present in workspace, skipping link."
-  exit 0
-fi
 
 if [ -z "$CLANG_PREBUILT_BIN" ]; then
   echo "CLANG_PREBUILT_BIN not set; cannot link clang prebuilt." >&2
