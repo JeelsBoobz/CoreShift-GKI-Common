@@ -416,6 +416,10 @@ fi
 
 "$REPO_ROOT/scripts/prepare-private-fragment.sh" "$PROFILE_JSON" "$WORKSPACE_DIR"
 
+if [ ! -e "$WORKSPACE_DIR/prebuilts/rust" ] && command -v rustc >/dev/null 2>&1; then
+  "$REPO_ROOT/scripts/link-rust-prebuilt.sh" "$WORKSPACE_DIR"
+fi
+
 for passthrough_key in \
   CCACHE_DIR \
   CCACHE_MAXSIZE \
