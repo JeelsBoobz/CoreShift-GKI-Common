@@ -49,7 +49,7 @@ import re
 import sys
 
 profile = sys.argv[1]
-match = re.fullmatch(r"(android\d+)-(\d+\.\d+)-lts", profile)
+match = re.fullmatch(r"(android\d+)-(\d+\.\d+)", profile)
 if not match:
     raise SystemExit(f"Could not derive Android release/kernel version from profile: {profile}")
 print(match.group(1))
