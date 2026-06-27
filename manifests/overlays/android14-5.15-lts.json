@@ -10,8 +10,7 @@
       "kernel/common",
       "kernel/common-modules/virtual-device",
       "platform/prebuilts/clang-tools",
-      "toolchain/prebuilts/ndk/r23",
-      "platform/external/stardoc"
+      "toolchain/prebuilts/ndk/r23"
     ]
   }
 }

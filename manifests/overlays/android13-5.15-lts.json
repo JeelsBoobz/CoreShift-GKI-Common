@@ -9,9 +9,7 @@
     "remove_projects": [
       "kernel/common",
       "kernel/common-modules/virtual-device",
-      "platform/prebuilts/boot-artifacts",
-      "toolchain/prebuilts/ndk/r23",
-      "platform/external/stardoc"
+      "toolchain/prebuilts/ndk/r23"
     ]
   }
 }
