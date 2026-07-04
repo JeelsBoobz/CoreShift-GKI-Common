@@ -1,0 +1,4 @@
+upstream=https://android.googlesource.com/kernel/common
+branch=android12-5.10-2026-07
+commit=648e13791289125f4447184856d1b211f32d5daf
+kernel_version=unknown
